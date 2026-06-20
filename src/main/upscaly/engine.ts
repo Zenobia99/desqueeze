@@ -146,3 +146,16 @@ export function createUpscalyEngine(): UpscalyEngine {
   const real = new RealUpscalyEngine()
   return real.available() ? real : new LanczosUpscalyEngine()
 }
+
+/**
+ * Log which upscale engine is active at startup. "lanczos" means the real
+ * Upscayl CLI wasn't found at the expected path, so upscales are a plain
+ * enlarge with no AI detail — the usual reason an upscale looks unchanged.
+ */
+export function logUpscalyRuntime(): void {
+  const hasBin = existsSync(UPSCAYL_BIN)
+  const hasModels = existsSync(UPSCAYL_MODELS)
+  const engine = hasBin && hasModels ? 'upscayl' : 'lanczos (fallback — no AI detail)'
+  // eslint-disable-next-line no-console
+  console.log(`[upscaly] engine=${engine} · bin=${hasBin} · models=${hasModels} · path=${UPSCAYL_BIN}`)
+}

@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
 import { logSharpRuntime } from './sharp-service'
+import { logUpscalyRuntime } from './upscaly/engine'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -31,6 +32,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   logSharpRuntime()
+  logUpscalyRuntime()
   registerIpc()
   createWindow()
 
