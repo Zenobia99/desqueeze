@@ -134,6 +134,34 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
 }
 
 const PREVIEW_MAX = 1100
+// A downscaled, decoded copy of each source kept in memory so repeated fast
+// previews (e.g. dragging the quality slider) don't re-decode the full-res
+// original every time. Capped slightly above PREVIEW_MAX so the displayed
+// preview keeps full quality.
+const PREVIEW_BASE_CAP = 1600
+const PREVIEW_BASE_LIMIT = 8
+const previewBaseCache = new Map<string, Promise<Buffer>>()
+
+async function previewBase(key: string, load: () => Promise<Buffer>): Promise<Buffer> {
+  let cached = previewBaseCache.get(key)
+  if (!cached) {
+    cached = (async () => {
+      const raw = await load()
+      return sharp(raw, { failOn: 'none' })
+        .resize({ width: PREVIEW_BASE_CAP, height: PREVIEW_BASE_CAP, fit: 'inside', withoutEnlargement: true })
+        .png()
+        .toBuffer()
+    })()
+    // Drop the failed entry so a transient read error doesn't poison the cache.
+    cached.catch(() => previewBaseCache.delete(key))
+    previewBaseCache.set(key, cached)
+    if (previewBaseCache.size > PREVIEW_BASE_LIMIT) {
+      const oldest = previewBaseCache.keys().next().value
+      if (oldest !== undefined) previewBaseCache.delete(oldest)
+    }
+  }
+  return cached
+}
 
 /** Render a browser-displayable preview of the processed output.
  *
@@ -145,12 +173,15 @@ const PREVIEW_MAX = 1100
  */
 export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
   try {
-    let input = req.photosId
-      ? await photosLibrary.getImageBuffer(req.photosId)
-      : req.sourcePath
-        ? await fs.readFile(req.sourcePath)
-        : null
-    if (!input) return { ok: false, error: 'no source' }
+    const sourceKey = req.photosId ?? req.sourcePath
+    if (!sourceKey) return { ok: false, error: 'no source' }
+    const loadSource = (): Promise<Buffer> =>
+      req.photosId ? photosLibrary.getImageBuffer(req.photosId) : fs.readFile(req.sourcePath as string)
+
+    // The plain fast preview resizes from a cached, downscaled base; the heavy
+    // paths (real-resolution estimate, AI upscale) need the full-res original.
+    let input =
+      req.fullEstimate || req.needsUpscale ? await loadSource() : await previewBase(sourceKey, loadSource)
 
     if (req.needsUpscale && upscaly.available()) {
       const up = await upscaly.upscale({

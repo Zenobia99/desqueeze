@@ -15,6 +15,58 @@ export function factor(f: OutputFormat): number {
   return FORMAT_FACTOR[f] ?? 0.000165
 }
 
+// Lossy encoders whose output size tracks the quality slider. PNG/TIFF are
+// treated as quality-flat (their FORMAT_FACTOR already models a near-lossless
+// byte cost).
+const LOSSY: Record<OutputFormat, boolean> = {
+  JPEG: true,
+  WebP: true,
+  HEIC: true,
+  Auto: true,
+  PNG: false,
+  TIFF: false
+}
+
+// Size relative to the quality=85 baseline that FORMAT_FACTOR is calibrated to.
+// Monotonic curve with the characteristic steep climb toward quality 100.
+const QUALITY_CURVE: [q: number, mul: number][] = [
+  [10, 0.3],
+  [40, 0.5],
+  [60, 0.68],
+  [75, 0.85],
+  [85, 1.0],
+  [92, 1.3],
+  [100, 2.3]
+]
+
+/**
+ * Multiplier applied to the per-pixel byte cost so the estimate responds to the
+ * quality slider (lossy formats only). 1.0 at quality 85 (the calibration point).
+ */
+export function qualityMultiplier(format: OutputFormat, quality: number): number {
+  if (!LOSSY[format]) return 1
+  const q = Math.max(1, Math.min(100, quality))
+  const pts = QUALITY_CURVE
+  if (q <= pts[0][0]) return pts[0][1]
+  if (q >= pts[pts.length - 1][0]) return pts[pts.length - 1][1]
+  for (let i = 1; i < pts.length; i++) {
+    const [q0, m0] = pts[i - 1]
+    const [q1, m1] = pts[i]
+    if (q <= q1) return m0 + ((m1 - m0) * (q - q0)) / (q1 - q0)
+  }
+  return 1
+}
+
+/** Estimated encoded size in KB for an output of outW×outH at a given format + quality. */
+export function estimateKb(
+  outW: number,
+  outH: number,
+  format: OutputFormat,
+  quality: number
+): number {
+  return outW * outH * factor(format) * qualityMultiplier(format, quality)
+}
+
 /** Format a size given in KB → "238 KB" / "1.7 MB". */
 export function fmtSize(kb: number): string {
   return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB'
@@ -32,6 +84,8 @@ export interface RowSettings {
   targetW: number
   targetH: number
   fit: ResizeMode
+  /** 1–100 encode quality (drives the size estimate for lossy formats). */
+  quality: number
   /** 0 | 90 | 180 | 270 (clockwise). */
   rotation?: number
   flipH?: boolean
@@ -71,28 +125,20 @@ export function computeRow(photo: Photo, s: RowSettings, hasOverride: boolean): 
   const rW = W / photo.w
   const rH = H / photo.h
 
-  let outW: number
-  let outH: number
-  let ratio: number
-  if (fit === 'Fit') {
-    ratio = Math.min(rW, rH)
-    outW = Math.round(photo.w * ratio)
-    outH = Math.round(photo.h * ratio)
-  } else if (fit === 'Fill') {
-    ratio = Math.max(rW, rH)
-    outW = W
-    outH = H
-  } else {
-    // Stretch
-    ratio = Math.max(rW, rH)
-    outW = W
-    outH = H
-  }
+  // All three modes now produce the exact target box on disk:
+  //  Fit     → letterbox (whole image + bars),  ratio = min (content scale)
+  //  Fill    → crop to fill,                     ratio = max
+  //  Stretch → distort to fill,                  ratio = max
+  // so the output canvas is always W×H; only `ratio` (the content scale used for
+  // the scale%/upscale flag) differs.
+  const outW = W
+  const outH = H
+  const ratio = fit === 'Fit' ? Math.min(rW, rH) : Math.max(rW, rH)
 
   const upscale = ratio > 1
   const scale = ratio * 100
   const scaleLabel = (scale >= 100 ? '+' : '') + Math.round(scale) + '%'
-  const estKb = outW * outH * factor(s.format)
+  const estKb = estimateKb(outW, outH, s.format, s.quality)
 
   const quarterTurned = ((s.rotation ?? 0) / 90) % 2 !== 0
   const dispW = quarterTurned ? outH : outW

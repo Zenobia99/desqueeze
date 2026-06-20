@@ -24,20 +24,24 @@ export interface ProcessOutput {
   bytes: number
 }
 
-// Map the design's resize modes onto sharp's fit strategies.
-//  Fill    → crop to fill the box  (cover)
-//  Fit     → letterbox / contain   (inside)
-//  Stretch → distort to exact W×H  (fill)
+// Map the design's resize modes onto sharp's fit strategies. Every mode fills
+// the exact target box, so the three are visually distinct:
+//  Fill    → crop to fill the box           (cover)
+//  Fit     → letterbox the whole image      (contain, padded to W×H)
+//  Stretch → distort to exact W×H           (fill)
 function sharpFit(mode: ResizeMode): keyof sharp.FitEnum {
   switch (mode) {
     case 'Fill':
       return 'cover'
     case 'Fit':
-      return 'inside'
+      return 'contain'
     case 'Stretch':
       return 'fill'
   }
 }
+
+// Letterbox bars for Fit mode (opaque black, all formats).
+const LETTERBOX_BG = { r: 0, g: 0, b: 0, alpha: 1 }
 
 /**
  * Resize + convert + re-encode an image in the main process.
@@ -50,6 +54,7 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
     width: opts.width,
     height: opts.height,
     fit: sharpFit(opts.fit),
+    background: LETTERBOX_BG,
     withoutEnlargement: false
   })
 
@@ -133,6 +138,28 @@ export function fileExtension(format: OutputFormat): string {
     case 'Auto':
     default:
       return 'jpg'
+  }
+}
+
+/**
+ * Log the sharp/libvips runtime once at startup. Confirms the native binary
+ * matches the host architecture (an arm64 build on Apple Silicon) and that SIMD
+ * acceleration is on — a mismatch here is the usual cause of slow resizes.
+ */
+export function logSharpRuntime(): void {
+  try {
+    const simd = sharp.simd()
+    const concurrency = sharp.concurrency()
+    // eslint-disable-next-line no-console
+    console.log(
+      `[sharp] libvips ${sharp.versions.vips} · ${process.platform}/${process.arch} · simd=${simd} · concurrency=${concurrency}`
+    )
+    if (!simd) {
+      // eslint-disable-next-line no-console
+      console.warn('[sharp] SIMD disabled — resizes will be slower than expected')
+    }
+  } catch {
+    /* diagnostics only */
   }
 }
 

@@ -122,6 +122,7 @@ export function useDesqueeze(photos: Photo[]) {
             targetW: e.targetW,
             targetH: e.targetH,
             fit: e.fit,
+            quality: e.quality,
             rotation: e.rotation,
             flipH: e.flipH
           },

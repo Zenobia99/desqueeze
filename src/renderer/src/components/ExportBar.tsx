@@ -87,7 +87,7 @@ export default function ExportBar({
         {exporting
           ? 'Exporting…'
           : exportCount === 0
-            ? 'Export'
+            ? 'Select Photos to Export'
             : `Export ${exportCount} ${exportCount === 1 ? 'Photo' : 'Photos'}`}
       </button>
     </div>
