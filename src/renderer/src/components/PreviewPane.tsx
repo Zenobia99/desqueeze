@@ -15,6 +15,8 @@ export default function PreviewPane({
   comparing,
   hasComparison,
   onToggleCompare,
+  zoom,
+  onToggleZoom,
   panX,
   panY,
   onPan
@@ -35,6 +37,9 @@ export default function PreviewPane({
   /** A plain-resize comparison crop is available to toggle to. */
   hasComparison: boolean
   onToggleCompare: () => void
+  /** 1:1 zoom (pannable detail) vs whole-image fit. */
+  zoom: boolean
+  onToggleZoom: () => void
   /** Pan position (0..1) of the 1:1 detail view. */
   panX: number
   panY: number
@@ -42,11 +47,13 @@ export default function PreviewPane({
 }) {
   const imgRef = React.useRef<HTMLImageElement>(null)
   const drag = React.useRef<{ sx: number; sy: number; px: number; py: number } | null>(null)
+  // The pannable 1:1 view is active only when upscaled AND zoomed in.
+  const panning = showingUpscaled && zoom
 
   // Drag to pan the 1:1 view: convert pointer delta into a 0..1 object-position,
   // scaled by how much the native image overflows its display box.
   const onPointerDown = (e: React.PointerEvent<HTMLImageElement>): void => {
-    if (!showingUpscaled) return
+    if (!panning) return
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     drag.current = { sx: e.clientX, sy: e.clientY, px: panX, py: panY }
@@ -98,10 +105,10 @@ export default function PreviewPane({
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
           style={{
-            // While the AI preview is up the image is rendered at high resolution
-            // and shown at true 1:1 pixels (a window into the detail) — drag to pan
-            // — rather than shrunk to fit, which would hide the upscaling again.
-            ...(showingUpscaled
+            // Default: whole image, true proportions (matches the export). Only in
+            // explicit 1:1 zoom is it shown at native pixels (a pannable window into
+            // the detail) so the AI upscaling is visible without implying a crop.
+            ...(panning
               ? {
                   width: '100%',
                   height: '100%',
@@ -147,18 +154,44 @@ export default function PreviewPane({
         </span>
         {showingUpscaled && (
           <>
-            <span
+            {/* Fit (whole image, true proportions) ↔ 100% (pannable detail). */}
+            <button
+              onClick={onToggleZoom}
+              title={zoom ? 'Show the whole image' : 'Zoom to 100% to inspect detail'}
               style={{
-                font: '600 9.5px ui-monospace,Menlo,monospace',
-                padding: '2px 5px',
-                borderRadius: 4,
-                background: 'rgba(255,255,255,.18)',
-                color: 'rgba(255,255,255,.9)'
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: 2,
+                borderRadius: 5,
+                border: 'none',
+                cursor: 'pointer',
+                background: 'rgba(255,255,255,.16)'
               }}
-              title="Shown at 1:1 — drag the image to pan"
             >
-              100% · drag to pan
-            </span>
+              {[
+                { label: 'Fit', active: !zoom },
+                { label: '100%', active: zoom }
+              ].map((seg) => (
+                <span
+                  key={seg.label}
+                  style={{
+                    font: '600 9.5px -apple-system',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: seg.active ? 'rgba(255,255,255,.9)' : 'transparent',
+                    color: seg.active ? '#1d1d1f' : 'rgba(255,255,255,.75)'
+                  }}
+                >
+                  {seg.label}
+                </span>
+              ))}
+            </button>
+            {zoom && (
+              <span style={{ font: '400 10px -apple-system', color: 'rgba(255,255,255,.6)' }}>
+                drag to pan
+              </span>
+            )}
             {hasComparison ? (
               // AI ↔ Original toggle — tap to compare the same crop with/without AI.
               <button
