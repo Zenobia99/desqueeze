@@ -1,5 +1,5 @@
 import React from 'react'
-import type { OutputFormat, ResizeMode, UpscaleModel } from '@shared/types'
+import type { OutputFormat, ResizeMode, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import {
   ChevronRight,
   ChevronDown,
@@ -32,6 +32,7 @@ const FITS: { name: ResizeMode; Icon: React.ComponentType<{ size?: number; color
   { name: 'Stretch', Icon: StretchIcon }
 ]
 const MODELS: UpscaleModel[] = ['Standard', 'Photo', 'Art']
+const SPEEDS: UpscaleSpeed[] = ['Fastest', 'Balanced', 'Max']
 
 function DimField({
   label,
@@ -138,6 +139,8 @@ export interface InspectorProps {
   setUpscale: (b: boolean) => void
   upModel: UpscaleModel
   setUpModel: (m: UpscaleModel) => void
+  upSpeed: UpscaleSpeed
+  setUpSpeed: (s: UpscaleSpeed) => void
   maxFactor: number
   setMaxFactor: (n: number) => void
   quality: number
@@ -457,6 +460,51 @@ export default function Inspector(p: InspectorProps) {
                         }}
                       >
                         {n}×
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              {/* Speed vs quality: caps how many pixels are fed to the model. */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  marginTop: 10,
+                  font: '400 11.5px -apple-system',
+                  color: '#8a8a8e'
+                }}
+              >
+                <span>Speed</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {SPEEDS.map((sp) => {
+                    const a = p.upSpeed === sp
+                    return (
+                      <button
+                        key={sp}
+                        onClick={() => p.setUpSpeed(sp)}
+                        title={
+                          sp === 'Fastest'
+                            ? 'Fastest — softer on large enlargements'
+                            : sp === 'Balanced'
+                              ? 'Balanced — recommended'
+                              : 'Max quality — slowest'
+                        }
+                        style={{
+                          minWidth: 34,
+                          height: 24,
+                          padding: '0 8px',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          font: '600 11px -apple-system',
+                          border: `0.5px solid ${a ? '#7b5cff' : '#dcdce0'}`,
+                          background: a ? '#7b5cff' : '#ffffff',
+                          color: a ? '#fff' : '#5a5a5f'
+                        }}
+                      >
+                        {sp}
                       </button>
                     )
                   })}

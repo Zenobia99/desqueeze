@@ -106,6 +106,7 @@ export default function App() {
       flipH: e.flipH,
       needsUpscale: canUpscale,
       upModel: e.upModel,
+      upSpeed: e.upSpeed,
       maxFactor: e.maxFactor
     }
   }, [leadRow, s, canUpscale])
@@ -271,6 +272,7 @@ export default function App() {
           flipH: e.flipH,
           needsUpscale: r.upscale && e.upscale,
           upModel: e.upModel,
+          upSpeed: e.upSpeed,
           maxFactor: e.maxFactor
         }
       })
@@ -366,6 +368,8 @@ export default function App() {
           setUpscale={s.setUpscale}
           upModel={s.upModel}
           setUpModel={s.setUpModel}
+          upSpeed={s.upSpeed}
+          setUpSpeed={s.setUpSpeed}
           maxFactor={s.maxFactor}
           setMaxFactor={s.setMaxFactor}
           quality={s.quality}

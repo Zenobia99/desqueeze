@@ -1,4 +1,12 @@
-import type { ItemSettings, Preset, PresetGroup } from './types'
+import type { ItemSettings, Preset, PresetGroup, UpscaleSpeed } from './types'
+
+// Longest side fed to the AI upscaler per speed setting. Model time scales
+// ~quadratically with this, so it's the main quality/speed lever.
+export const SPEED_CAP: Record<UpscaleSpeed, number> = {
+  Fastest: 768,
+  Balanced: 1024,
+  Max: 1536
+}
 
 const slug = (s: string): string =>
   s
@@ -118,7 +126,8 @@ export const DEFAULT_SETTINGS: ItemSettings = {
   rotation: 0,
   flipH: false,
   upscale: false,
-  upModel: 'Photo',
+  upModel: 'Standard',
+  upSpeed: 'Balanced',
   maxFactor: 4,
   presetId: DEFAULT_PRESET.id,
   presetName: DEFAULT_PRESET.name,

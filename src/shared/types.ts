@@ -4,6 +4,8 @@ export type OutputFormat = 'Auto' | 'PNG' | 'JPEG' | 'TIFF' | 'HEIC' | 'WebP'
 export type ResizeMode = 'Fill' | 'Fit' | 'Stretch'
 export type ViewMode = 'list' | 'grid'
 export type UpscaleModel = 'Standard' | 'Photo' | 'Art'
+/** AI upscale quality/speed trade-off (caps the pixels fed to the model). */
+export type UpscaleSpeed = 'Fastest' | 'Balanced' | 'Max'
 
 /** A per-file override that wins over the global batch settings. */
 export interface PhotoOverride {
@@ -60,6 +62,8 @@ export interface ItemSettings {
   flipH: boolean
   upscale: boolean
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed: UpscaleSpeed
   /** AI upscale factor (Upscayl -s): 2 | 3 | 4. */
   maxFactor: number
   presetId: string
@@ -106,6 +110,8 @@ export interface ExportItemRequest {
   /** Whether the target exceeds the source and needs the Upscaly engine. */
   needsUpscale: boolean
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
 }
@@ -145,6 +151,8 @@ export interface PreviewRequest {
   flipH?: boolean
   needsUpscale: boolean
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
   /** Render at the real export box + format to report exact output bytes. */

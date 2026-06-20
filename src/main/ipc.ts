@@ -4,6 +4,7 @@ import { join, basename, extname } from 'path'
 import { processImage, fileExtension, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
+import { SPEED_CAP } from '@shared/data'
 import type {
   ExportRequest,
   ExportResult,
@@ -64,11 +65,6 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
 const photosLibrary = new PhotosLibrarySource()
 const upscaly = createUpscalyEngine()
 
-// Longest side fed to the AI upscaler. Model time scales ~quadratically with
-// this, so it's the main speed lever; 1024 is the "balanced" point — clearly
-// faster than the model's detail ceiling with minimal visible loss.
-const AI_INPUT_CAP = 1024
-
 /** Core export pipeline — shared by the IPC handler and verification harness. */
 export async function runExport(req: ExportRequest): Promise<ExportResult> {
   const destination = req.destination || join(app.getPath('downloads'), 'Desqueeze Export')
@@ -97,7 +93,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
           model: item.upModel,
           scale: item.maxFactor,
           targetLongest: Math.max(item.width, item.height),
-          inputCap: AI_INPUT_CAP
+          inputCap: SPEED_CAP[item.upSpeed ?? 'Balanced']
         })
         input = up.buffer
         upscaled = true
@@ -198,7 +194,7 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         scale: req.maxFactor,
         targetLongest: Math.max(req.width, req.height),
         // Full estimate matches the export's AI input cap; fast preview stays tiny.
-        inputCap: req.fullEstimate ? AI_INPUT_CAP : 320
+        inputCap: req.fullEstimate ? SPEED_CAP[req.upSpeed ?? 'Balanced'] : 320
       })
       input = up.buffer
     }
