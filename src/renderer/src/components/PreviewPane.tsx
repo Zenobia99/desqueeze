@@ -1,5 +1,7 @@
 import React from 'react'
 
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n))
+
 export default function PreviewPane({
   name,
   dataUrl,
@@ -12,7 +14,10 @@ export default function PreviewPane({
   onPreviewUpscale,
   comparing,
   hasComparison,
-  onToggleCompare
+  onToggleCompare,
+  panX,
+  panY,
+  onPan
 }: {
   name: string
   dataUrl: string | null
@@ -30,7 +35,39 @@ export default function PreviewPane({
   /** A plain-resize comparison crop is available to toggle to. */
   hasComparison: boolean
   onToggleCompare: () => void
+  /** Pan position (0..1) of the 1:1 detail view. */
+  panX: number
+  panY: number
+  onPan: (x: number, y: number) => void
 }) {
+  const imgRef = React.useRef<HTMLImageElement>(null)
+  const drag = React.useRef<{ sx: number; sy: number; px: number; py: number } | null>(null)
+
+  // Drag to pan the 1:1 view: convert pointer delta into a 0..1 object-position,
+  // scaled by how much the native image overflows its display box.
+  const onPointerDown = (e: React.PointerEvent<HTMLImageElement>): void => {
+    if (!showingUpscaled) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    drag.current = { sx: e.clientX, sy: e.clientY, px: panX, py: panY }
+  }
+  const onPointerMove = (e: React.PointerEvent<HTMLImageElement>): void => {
+    const d = drag.current
+    const img = imgRef.current
+    if (!d || !img) return
+    const overflowX = img.naturalWidth - img.clientWidth
+    const overflowY = img.naturalHeight - img.clientHeight
+    const nx = overflowX > 0 ? clamp01(d.px - (e.clientX - d.sx) / overflowX) : 0.5
+    const ny = overflowY > 0 ? clamp01(d.py - (e.clientY - d.sy) / overflowY) : 0.5
+    onPan(nx, ny)
+  }
+  const endDrag = (e: React.PointerEvent<HTMLImageElement>): void => {
+    if (drag.current) {
+      drag.current = null
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+    }
+  }
+
   return (
     <div
       style={{
@@ -52,15 +89,28 @@ export default function PreviewPane({
     >
       {dataUrl ? (
         <img
+          ref={imgRef}
           src={dataUrl}
           alt={name}
+          draggable={false}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
           style={{
-            // While the AI preview is up the image is a native-resolution center
-            // crop — show it at true 1:1 pixels (a window into the detail) rather
-            // than shrinking it to fit, which would hide the upscaling again.
+            // While the AI preview is up the image is rendered at high resolution
+            // and shown at true 1:1 pixels (a window into the detail) — drag to pan
+            // — rather than shrunk to fit, which would hide the upscaling again.
             ...(showingUpscaled
-              ? { width: '100%', height: '100%', objectFit: 'none', objectPosition: 'center' }
-              : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }),
+              ? {
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'none' as const,
+                  objectPosition: `${panX * 100}% ${panY * 100}%`,
+                  cursor: 'grab',
+                  touchAction: 'none'
+                }
+              : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' as const }),
             borderRadius: 4,
             boxShadow: '0 2px 10px rgba(0,0,0,.18), 0 0 0 0.5px rgba(0,0,0,.12)',
             opacity: loading ? 0.55 : 1,
@@ -105,8 +155,9 @@ export default function PreviewPane({
                 background: 'rgba(255,255,255,.18)',
                 color: 'rgba(255,255,255,.9)'
               }}
+              title="Shown at 1:1 — drag the image to pan"
             >
-              100%
+              100% · drag to pan
             </span>
             {hasComparison ? (
               // AI ↔ Original toggle — tap to compare the same crop with/without AI.

@@ -135,6 +135,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
 }
 
 const PREVIEW_MAX = 1100
+// Larger cap for the pannable 1:1 detail view (AI upscale comparison).
+const PAN_MAX = 2000
 // A downscaled, decoded copy of each source kept in memory so repeated fast
 // previews (e.g. dragging the quality slider) don't re-decode the full-res
 // original every time. Capped slightly above PREVIEW_MAX so the displayed
@@ -208,11 +210,12 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         rotation: req.rotation,
         flipH: req.flipH
       })
-      // For display: a native-resolution center crop (so AI detail is visible at
-      // 100%), or the whole image downscaled to fit. Either way TIFF/HEIC are
-      // re-encoded to JPEG since <img> can't render them.
+      // For display: when cropPreview is set, return a high-resolution image
+      // (capped, JPEG) that the renderer shows at 1:1 and lets the user pan over,
+      // so AI detail is visible; otherwise the whole image downscaled to fit.
+      // Either way TIFF/HEIC are re-encoded to JPEG since <img> can't render them.
       const display = req.cropPreview
-        ? await sharpCenterCropJpeg(out.buffer, PREVIEW_MAX)
+        ? await sharpResizeJpeg(out.buffer, PAN_MAX, 88)
         : await sharpResizeJpeg(out.buffer, PREVIEW_MAX)
       return {
         ok: true,
@@ -251,35 +254,10 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
 }
 
 /** Decode any format and re-encode a downscaled JPEG for on-screen display. */
-async function sharpResizeJpeg(buf: Buffer, max: number): Promise<Buffer> {
+async function sharpResizeJpeg(buf: Buffer, max: number, quality = 80): Promise<Buffer> {
   return sharp(buf, { failOn: 'none' })
     .resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 80 })
-    .toBuffer()
-}
-
-/**
- * Native-resolution center crop (up to max×max) re-encoded as JPEG. Reveals
- * real per-pixel detail at 100% instead of shrinking the whole image to fit.
- */
-async function sharpCenterCropJpeg(buf: Buffer, max: number): Promise<Buffer> {
-  const img = sharp(buf, { failOn: 'none' })
-  const meta = await img.metadata()
-  const w = meta.width ?? 0
-  const h = meta.height ?? 0
-  if (w <= max && h <= max) {
-    return img.jpeg({ quality: 90 }).toBuffer()
-  }
-  const cw = Math.min(max, w)
-  const ch = Math.min(max, h)
-  return sharp(buf, { failOn: 'none' })
-    .extract({
-      left: Math.floor((w - cw) / 2),
-      top: Math.floor((h - ch) / 2),
-      width: cw,
-      height: ch
-    })
-    .jpeg({ quality: 90 })
+    .jpeg({ quality })
     .toBuffer()
 }
 

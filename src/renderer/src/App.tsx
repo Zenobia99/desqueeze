@@ -123,6 +123,8 @@ export default function App() {
   const [upscaleLoading, setUpscaleLoading] = useState(false)
   // While the AI preview is up: false → show AI crop, true → show plain crop.
   const [compareOrig, setCompareOrig] = useState(false)
+  // Pan position (0..1) of the 1:1 detail view; persists across AI/Original.
+  const [pan, setPan] = useState({ x: 0.5, y: 0.5 })
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -155,6 +157,7 @@ export default function App() {
       setOrigRes(null)
       setUpscaleKey('')
       setCompareOrig(false)
+      setPan({ x: 0.5, y: 0.5 })
     }
   }, [previewKey, upscaleKey])
 
@@ -178,6 +181,7 @@ export default function App() {
       setOrigRes(toInfo(orig))
       setUpscaleKey(keyAtStart)
       setCompareOrig(false)
+      setPan({ x: 0.5, y: 0.5 })
     }
     setUpscaleLoading(false)
   }
@@ -319,6 +323,9 @@ export default function App() {
               comparing={compareOrig}
               hasComparison={!!origRes}
               onToggleCompare={() => setCompareOrig((v) => !v)}
+              panX={pan.x}
+              panY={pan.y}
+              onPan={(x, y) => setPan({ x, y })}
             />
           )}
           <Queue
