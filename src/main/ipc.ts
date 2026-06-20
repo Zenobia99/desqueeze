@@ -91,6 +91,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
           input,
           model: item.upModel,
           scale: item.maxFactor,
+          targetLongest: Math.max(item.width, item.height),
           inputCap: 1536
         })
         input = up.buffer
@@ -188,6 +189,7 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         input,
         model: req.upModel,
         scale: req.maxFactor,
+        targetLongest: Math.max(req.width, req.height),
         // Full estimate uses the export-grade AI input; fast preview stays tiny.
         inputCap: req.fullEstimate ? 1536 : 320
       })

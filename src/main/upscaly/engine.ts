@@ -10,8 +10,15 @@ import type { UpscaleModel } from '@shared/types'
 export interface UpscaleRequest {
   input: Buffer
   model: UpscaleModel
-  /** AI upscale factor (Upscayl -s): 2 | 3 | 4. Defaults to 4. */
+  /** Upper bound on the AI upscale factor (Upscayl -s): 2 | 3 | 4. Defaults to 4. */
   scale?: number
+  /**
+   * Longest side of the final output. When given, the engine upscales by the
+   * SMALLEST factor (2/3/4, capped by `scale`) that still reaches this size,
+   * instead of always running at the max factor and downscaling the surplus —
+   * the dominant cost saving, since model work grows with output pixels.
+   */
+  targetLongest?: number
   /**
    * Cap the longest side of the image fed to the AI model. The model enlarges
    * by `scale`, so a small cap keeps preview fast; export uses a larger cap.
@@ -48,6 +55,19 @@ const MODEL_MAP: Record<UpscaleModel, string> = {
   Art: 'digital-art-4x'
 }
 
+/**
+ * Choose the smallest supported factor (2/3/4, capped by `maxFactor`) that
+ * enlarges `inLongest` up to `targetLongest`. Falls back to `maxFactor` when the
+ * target is unknown. This is what keeps the AI from upscaling far past the size
+ * actually needed.
+ */
+function pickScale(inLongest: number, targetLongest: number | undefined, maxFactor: number): number {
+  const cap = Math.max(2, Math.min(4, Math.round(maxFactor)))
+  if (!targetLongest || inLongest <= 0) return cap
+  const needed = Math.ceil(targetLongest / inLongest)
+  return Math.max(2, Math.min(cap, needed))
+}
+
 /** Downscale (never enlarge) so the AI model receives a bounded input. */
 async function capInput(input: Buffer, cap: number): Promise<Buffer> {
   const meta = await sharp(input).metadata()
@@ -76,7 +96,9 @@ export class RealUpscalyEngine implements UpscalyEngine {
       const prepared = await capInput(req.input, req.inputCap ?? 1280)
       await fs.writeFile(inPath, prepared)
       const model = MODEL_MAP[req.model] ?? MODEL_MAP.Photo
-      const scale = String(Math.max(2, Math.min(4, Math.round(req.scale ?? 4))))
+      const inMeta = await sharp(prepared).metadata()
+      const inLongest = Math.max(inMeta.width ?? 0, inMeta.height ?? 0)
+      const scale = String(pickScale(inLongest, req.targetLongest, req.scale ?? 4))
 
       await new Promise<void>((resolve, reject) => {
         execFile(
@@ -109,10 +131,11 @@ export class LanczosUpscalyEngine implements UpscalyEngine {
 
   async upscale(req: UpscaleRequest): Promise<UpscaleResult> {
     const capped = await capInput(req.input, req.inputCap ?? 1280)
-    const scale = Math.max(2, Math.min(4, Math.round(req.scale ?? 4)))
-    const meta = await sharp(capped).metadata()
-    const width = Math.round((meta.width ?? 0) * scale)
-    const height = Math.round((meta.height ?? 0) * scale)
+    const inMeta = await sharp(capped).metadata()
+    const inLongest = Math.max(inMeta.width ?? 0, inMeta.height ?? 0)
+    const scale = pickScale(inLongest, req.targetLongest, req.scale ?? 4)
+    const width = Math.round((inMeta.width ?? 0) * scale)
+    const height = Math.round((inMeta.height ?? 0) * scale)
     const buffer = await sharp(capped).resize({ width, height, kernel: 'lanczos3' }).png().toBuffer()
     return { buffer, width, height, engine: this.name }
   }
