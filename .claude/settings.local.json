@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find / -type d -name \"design_handoff_desqueeze*\")",
+      "Bash(find / -iname \"*desqueeze*\")",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node -e \"const s=require\\('sharp'\\); console.log\\('sharp version', s.versions.sharp\\); console.log\\('formats heif:', !!s.format.heif?.input\\)\")",
+      "Bash(DQ_SHOT=/tmp/dq-list.png ./node_modules/.bin/electron ./out/main/index.js)",
+      "Bash(cp src/renderer/src/store.ts /tmp/store.bak)",
+      "Bash(sed -i '' \"s/useState<ViewMode>\\('list'\\)/useState<ViewMode>\\('grid'\\)/\" src/renderer/src/store.ts)",
+      "Bash(sed -i '' \"s/useState<boolean>\\(DEFAULT_SETTINGS.upscale\\)/useState<boolean>\\(true\\)/\" src/renderer/src/store.ts)",
+      "Bash(DQ_SHOT=/tmp/dq-grid.png ./node_modules/.bin/electron ./out/main/index.js)",
+      "Bash(cp /tmp/store.bak src/renderer/src/store.ts)",
+      "Bash(grep -vE \"Electron Security Warning|secure-restorable|^\\\\s*$\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(pkill -f \"electron-vite preview\")",
+      "Bash(pkill -f \"my-project/node_modules/electron\")",
+      "Bash(DQ_TEST=1 ./node_modules/.bin/electron ./out/main/index.js)",
+      "Bash(echo \"exit $?\")"
+    ]
+  }
+}
