@@ -9,7 +9,10 @@ export default function PreviewPane({
   canUpscale,
   showingUpscaled,
   upscaleLoading,
-  onPreviewUpscale
+  onPreviewUpscale,
+  comparing,
+  hasComparison,
+  onToggleCompare
 }: {
   name: string
   dataUrl: string | null
@@ -22,6 +25,11 @@ export default function PreviewPane({
   showingUpscaled: boolean
   upscaleLoading: boolean
   onPreviewUpscale: () => void
+  /** Viewing the plain (no-AI) crop rather than the AI crop. */
+  comparing: boolean
+  /** A plain-resize comparison crop is available to toggle to. */
+  hasComparison: boolean
+  onToggleCompare: () => void
 }) {
   return (
     <div
@@ -38,7 +46,8 @@ export default function PreviewPane({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 18
+        padding: 18,
+        overflow: 'hidden'
       }}
     >
       {dataUrl ? (
@@ -46,9 +55,12 @@ export default function PreviewPane({
           src={dataUrl}
           alt={name}
           style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
+            // While the AI preview is up the image is a native-resolution center
+            // crop — show it at true 1:1 pixels (a window into the detail) rather
+            // than shrinking it to fit, which would hide the upscaling again.
+            ...(showingUpscaled
+              ? { width: '100%', height: '100%', objectFit: 'none', objectPosition: 'center' }
+              : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }),
             borderRadius: 4,
             boxShadow: '0 2px 10px rgba(0,0,0,.18), 0 0 0 0.5px rgba(0,0,0,.12)',
             opacity: loading ? 0.55 : 1,
@@ -84,17 +96,66 @@ export default function PreviewPane({
           {estLabel}
         </span>
         {showingUpscaled && (
-          <span
-            style={{
-              font: '600 9.5px -apple-system',
-              padding: '2px 5px',
-              borderRadius: 4,
-              background: 'linear-gradient(135deg,#7b5cff,#b44cff)',
-              color: '#fff'
-            }}
-          >
-            ✓ Upscaly
-          </span>
+          <>
+            <span
+              style={{
+                font: '600 9.5px ui-monospace,Menlo,monospace',
+                padding: '2px 5px',
+                borderRadius: 4,
+                background: 'rgba(255,255,255,.18)',
+                color: 'rgba(255,255,255,.9)'
+              }}
+            >
+              100%
+            </span>
+            {hasComparison ? (
+              // AI ↔ Original toggle — tap to compare the same crop with/without AI.
+              <button
+                onClick={onToggleCompare}
+                title="Compare with the plain (no-AI) resize"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: 2,
+                  borderRadius: 5,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: 'rgba(255,255,255,.16)'
+                }}
+              >
+                {[
+                  { label: '✓ Upscaly', active: !comparing },
+                  { label: 'Original', active: comparing }
+                ].map((seg) => (
+                  <span
+                    key={seg.label}
+                    style={{
+                      font: '600 9.5px -apple-system',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      background: seg.active ? 'linear-gradient(135deg,#7b5cff,#b44cff)' : 'transparent',
+                      color: seg.active ? '#fff' : 'rgba(255,255,255,.75)'
+                    }}
+                  >
+                    {seg.label}
+                  </span>
+                ))}
+              </button>
+            ) : (
+              <span
+                style={{
+                  font: '600 9.5px -apple-system',
+                  padding: '2px 5px',
+                  borderRadius: 4,
+                  background: 'linear-gradient(135deg,#7b5cff,#b44cff)',
+                  color: '#fff'
+                }}
+              >
+                ✓ Upscaly
+              </span>
+            )}
+          </>
         )}
       </div>
 

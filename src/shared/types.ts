@@ -149,6 +149,12 @@ export interface PreviewRequest {
   maxFactor?: number
   /** Render at the real export box + format to report exact output bytes. */
   fullEstimate?: boolean
+  /**
+   * Return a native-resolution center crop of the output (instead of the whole
+   * image downscaled to fit), so fine detail — e.g. AI upscaling — is visible
+   * at 100%. Implies a full-resolution render.
+   */
+  cropPreview?: boolean
 }
 
 export interface PreviewResult {

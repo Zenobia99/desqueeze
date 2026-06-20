@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ExportItemRequest, LibrarySource, Photo, PreviewRequest } from '@shared/types'
+import type { ExportItemRequest, LibrarySource, Photo, PreviewRequest, PreviewResult } from '@shared/types'
 import { computeTotals, fmtSize } from '@shared/compute'
 import { useDesqueeze } from './store'
 import Toolbar from './components/Toolbar'
@@ -114,10 +114,15 @@ export default function App() {
   type PreviewInfo = { url: string; bytes: number; w: number; h: number }
   const [fast, setFast] = useState<PreviewInfo | null>(null)
   const [fastLoading, setFastLoading] = useState(false)
-  // On-demand AI-upscaled preview (heavy), tied to the exact settings it ran for.
+  // On-demand AI preview (heavy), tied to the exact settings it ran for. Both a
+  // 100% center crop of the AI result and of the plain (no-AI) resize are
+  // rendered for the same region, so the user can compare detail side by side.
   const [upRes, setUpRes] = useState<PreviewInfo | null>(null)
+  const [origRes, setOrigRes] = useState<PreviewInfo | null>(null)
   const [upscaleKey, setUpscaleKey] = useState<string>('')
   const [upscaleLoading, setUpscaleLoading] = useState(false)
+  // While the AI preview is up: false → show AI crop, true → show plain crop.
+  const [compareOrig, setCompareOrig] = useState(false)
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -147,7 +152,9 @@ export default function App() {
   useEffect(() => {
     if (upscaleKey && upscaleKey !== previewKey) {
       setUpRes(null)
+      setOrigRes(null)
       setUpscaleKey('')
+      setCompareOrig(false)
     }
   }, [previewKey, upscaleKey])
 
@@ -155,17 +162,30 @@ export default function App() {
     if (!previewReq || !window.desqueeze || upscaleLoading) return
     setUpscaleLoading(true)
     const keyAtStart = previewKey
-    // Full-resolution render → exact output byte count for the estimate.
-    const res = await window.desqueeze.preview({ ...previewReq, needsUpscale: true, fullEstimate: true })
-    if (res.ok && res.dataUrl) {
-      setUpRes({ url: res.dataUrl, bytes: res.bytes ?? 0, w: res.width ?? 0, h: res.height ?? 0 })
+    const toInfo = (res: PreviewResult): PreviewInfo | null =>
+      res.ok && res.dataUrl
+        ? { url: res.dataUrl, bytes: res.bytes ?? 0, w: res.width ?? 0, h: res.height ?? 0 }
+        : null
+    // Full-resolution renders → exact byte count + a 100% center crop. Render
+    // the AI and the plain (no-AI) version of the same region for comparison.
+    const [ai, orig] = await Promise.all([
+      window.desqueeze.preview({ ...previewReq, needsUpscale: true, fullEstimate: true, cropPreview: true }),
+      window.desqueeze.preview({ ...previewReq, needsUpscale: false, fullEstimate: true, cropPreview: true })
+    ])
+    const aiInfo = toInfo(ai)
+    if (aiInfo) {
+      setUpRes(aiInfo)
+      setOrigRes(toInfo(orig))
       setUpscaleKey(keyAtStart)
+      setCompareOrig(false)
     }
     setUpscaleLoading(false)
   }
 
   const showingUpscaled = !!upRes && upscaleKey === previewKey
-  const previewUrl = showingUpscaled ? upRes!.url : (fast?.url ?? null)
+  const previewUrl = showingUpscaled
+    ? (compareOrig && origRes ? origRes.url : upRes!.url)
+    : (fast?.url ?? null)
 
   // When the AI preview is shown it carries the EXACT export byte count
   // (rendered at real resolution + format); otherwise use the static estimate.
@@ -296,6 +316,9 @@ export default function App() {
               showingUpscaled={showingUpscaled}
               upscaleLoading={upscaleLoading}
               onPreviewUpscale={handlePreviewUpscale}
+              comparing={compareOrig}
+              hasComparison={!!origRes}
+              onToggleCompare={() => setCompareOrig((v) => !v)}
             />
           )}
           <Queue
