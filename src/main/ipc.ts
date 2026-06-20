@@ -64,6 +64,11 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
 const photosLibrary = new PhotosLibrarySource()
 const upscaly = createUpscalyEngine()
 
+// Longest side fed to the AI upscaler. Model time scales ~quadratically with
+// this, so it's the main speed lever; 1024 is the "balanced" point — clearly
+// faster than the model's detail ceiling with minimal visible loss.
+const AI_INPUT_CAP = 1024
+
 /** Core export pipeline — shared by the IPC handler and verification harness. */
 export async function runExport(req: ExportRequest): Promise<ExportResult> {
   const destination = req.destination || join(app.getPath('downloads'), 'Desqueeze Export')
@@ -92,7 +97,7 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
           model: item.upModel,
           scale: item.maxFactor,
           targetLongest: Math.max(item.width, item.height),
-          inputCap: 1536
+          inputCap: AI_INPUT_CAP
         })
         input = up.buffer
         upscaled = true
@@ -192,8 +197,8 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         model: req.upModel,
         scale: req.maxFactor,
         targetLongest: Math.max(req.width, req.height),
-        // Full estimate uses the export-grade AI input; fast preview stays tiny.
-        inputCap: req.fullEstimate ? 1536 : 320
+        // Full estimate matches the export's AI input cap; fast preview stays tiny.
+        inputCap: req.fullEstimate ? AI_INPUT_CAP : 320
       })
       input = up.buffer
     }
