@@ -273,18 +273,13 @@ function GridCard({
         borderRadius: 9,
         padding: 6,
         cursor: 'default',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minHeight: 0,
         background: selected ? 'rgba(20,115,230,.10)' : 'transparent',
         boxShadow: selected ? '0 0 0 2px #1473e6' : 'none'
       }}
     >
       <div
         style={{
-          flex: 1,
-          minHeight: 0,
+          aspectRatio: '16 / 9',
           borderRadius: 7,
           boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,.1)',
           position: 'relative',
@@ -330,7 +325,7 @@ function GridCard({
           </div>
         )}
       </div>
-      <div style={{ flex: 'none', padding: '8px 2px 2px' }}>
+      <div style={{ padding: '8px 2px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ font: '600 12.5px -apple-system', color: '#1d1d1f' }}>
             {r.targetLabel}
@@ -581,15 +576,18 @@ function Queue({
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: 0, padding: '0 8px' }}>
             <PageArrow dir="left" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} />
             <div
+              className="dq-scroll"
               style={{
                 flex: 1,
                 minWidth: 0,
                 alignSelf: 'stretch',
+                overflowY: 'auto',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3,1fr)',
-                gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
-                gap: 18,
-                padding: '16px 10px'
+                gridAutoRows: 'min-content',
+                gap: 16,
+                padding: '14px 10px',
+                alignContent: 'start'
               }}
             >
               {pageRows.map((r) => (
