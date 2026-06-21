@@ -363,6 +363,30 @@ function Queue({
 }) {
   const isSel = (id: number) => selected.includes(id)
 
+  // Lightweight list virtualization: only the rows in (and near) the viewport
+  // are mounted, so a 1000-photo queue re-renders a handful of rows per frame
+  // instead of all of them (e.g. while dragging Quality). Rows are a fixed
+  // height (46px + 0.5px divider), so the window is pure arithmetic.
+  const ROW_H = 46.5
+  const OVERSCAN = 6
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const [scrollTop, setScrollTop] = React.useState(0)
+  const [viewportH, setViewportH] = React.useState(0)
+  React.useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const measure = (): void => {
+      setViewportH(el.clientHeight)
+      setScrollTop(el.scrollTop)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [viewMode])
+  const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
+  const end = Math.min(rows.length, Math.ceil((scrollTop + (viewportH || 700)) / ROW_H) + OVERSCAN)
+
   return (
     <div
       style={{
@@ -481,17 +505,24 @@ function Queue({
               Est. Size
             </div>
           </div>
-          <div className="dq-scroll" style={{ flex: 1, overflowY: 'auto' }}>
-            {rows.map((r) => (
-              <ListRow
-                key={r.photo.id}
-                r={r}
-                selected={isSel(r.photo.id)}
-                rotation={r.rotation}
-                flipH={r.flipH}
-                onClick={() => onToggle(r.photo.id)}
-              />
-            ))}
+          <div
+            className="dq-scroll"
+            ref={scrollRef}
+            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+            style={{ flex: 1, overflowY: 'auto' }}
+          >
+            <div style={{ paddingTop: start * ROW_H, paddingBottom: Math.max(0, (rows.length - end) * ROW_H) }}>
+              {rows.slice(start, end).map((r) => (
+                <ListRow
+                  key={r.photo.id}
+                  r={r}
+                  selected={isSel(r.photo.id)}
+                  rotation={r.rotation}
+                  flipH={r.flipH}
+                  onClick={() => onToggle(r.photo.id)}
+                />
+              ))}
+            </div>
           </div>
         </>
       ) : (
