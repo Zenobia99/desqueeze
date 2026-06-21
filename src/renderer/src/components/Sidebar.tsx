@@ -1,7 +1,8 @@
 import React from 'react'
-import type { LibrarySource } from '@shared/types'
+import type { LibrarySource, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import photosIcon from '../assets/photos-icon.png'
 import { ClockIcon, PhotoMountainIcon, AlbumsIcon } from './Icons'
+import UpscalyPanel from './UpscalyPanel'
 
 const sectionLabel: React.CSSProperties = {
   font: '600 11px -apple-system',
@@ -61,10 +62,28 @@ function LibRow({
 
 function Sidebar({
   activeSource,
-  onSelectSource
+  onSelectSource,
+  upscale,
+  setUpscale,
+  upModel,
+  setUpModel,
+  upSpeed,
+  setUpSpeed,
+  maxFactor,
+  setMaxFactor,
+  upscaleDisabled
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
+  upscale: boolean
+  setUpscale: (b: boolean) => void
+  upModel: UpscaleModel
+  setUpModel: (m: UpscaleModel) => void
+  upSpeed: UpscaleSpeed
+  setUpSpeed: (s: UpscaleSpeed) => void
+  maxFactor: number
+  setMaxFactor: (n: number) => void
+  upscaleDisabled: boolean
 }) {
   return (
     <div
@@ -116,6 +135,19 @@ function Sidebar({
           label="Albums"
         />
       </div>
+
+      <div style={{ ...sectionLabel, padding: '20px 8px 8px' }}>AI Upscale</div>
+      <UpscalyPanel
+        upscale={upscale}
+        setUpscale={setUpscale}
+        upModel={upModel}
+        setUpModel={setUpModel}
+        upSpeed={upSpeed}
+        setUpSpeed={setUpSpeed}
+        maxFactor={maxFactor}
+        setMaxFactor={setMaxFactor}
+        disabled={upscaleDisabled}
+      />
     </div>
   )
 }

@@ -313,7 +313,19 @@ export default function App() {
       />
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <Sidebar activeSource={source} onSelectSource={handleSelectSource} />
+        <Sidebar
+          activeSource={source}
+          onSelectSource={handleSelectSource}
+          upscale={s.upscale}
+          setUpscale={s.setUpscale}
+          upModel={s.upModel}
+          setUpModel={s.setUpModel}
+          upSpeed={s.upSpeed}
+          setUpSpeed={s.setUpSpeed}
+          maxFactor={s.maxFactor}
+          setMaxFactor={s.setMaxFactor}
+          upscaleDisabled={!s.hasSelection}
+        />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {leadRow && (
@@ -364,14 +376,6 @@ export default function App() {
           onSwapDims={s.swapDims}
           fit={s.fit}
           setFit={s.setFit}
-          upscale={s.upscale}
-          setUpscale={s.setUpscale}
-          upModel={s.upModel}
-          setUpModel={s.setUpModel}
-          upSpeed={s.upSpeed}
-          setUpSpeed={s.setUpSpeed}
-          maxFactor={s.maxFactor}
-          setMaxFactor={s.setMaxFactor}
           quality={s.quality}
           setQuality={s.setQuality}
           rotation={s.rotation}
