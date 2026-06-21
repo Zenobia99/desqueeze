@@ -54,7 +54,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const sourcePhotos = useMemo(() => [...(cache[source] ?? []), ...imported], [cache, source, imported])
+  // Imported files surface at the FRONT of Recents and Last Import (most recent
+  // first); they shouldn't appear under Favourites/Albums.
+  const sourcePhotos = useMemo(() => {
+    const base = cache[source] ?? []
+    if (source === 'recents' || source === 'last-import') return [...imported, ...base]
+    return base
+  }, [cache, source, imported])
 
   const s = useDesqueeze(sourcePhotos)
   const [search, setSearch] = useState('')
@@ -221,10 +227,18 @@ export default function App() {
     if (!window.desqueeze) return
     const added = await window.desqueeze.addPhotos()
     if (!added?.length) return
-    const withIds: Photo[] = added.map((p) => ({ ...p, id: nextId.current++ }))
-    setImported((prev) => [...prev, ...withIds])
-    showToast(`Added ${withIds.length} photo${withIds.length === 1 ? '' : 's'}`)
-  }, [showToast])
+    // Skip files already in the queue (same path) so re-adding doesn't duplicate.
+    const seen = new Set(imported.map((p) => p.path).filter(Boolean))
+    const fresh = added.filter((p) => !p.path || !seen.has(p.path))
+    const withIds: Photo[] = fresh.map((p) => ({ ...p, id: nextId.current++ }))
+    if (withIds.length) setImported((prev) => [...withIds, ...prev])
+    const dup = added.length - withIds.length
+    showToast(
+      withIds.length
+        ? `Added ${withIds.length} photo${withIds.length === 1 ? '' : 's'}${dup ? ` · ${dup} already added` : ''}`
+        : 'Those photos are already in the queue'
+    )
+  }, [showToast, imported])
 
   const removeSelected = useCallback(() => {
     if (s.selected.length === 0) return
