@@ -85,7 +85,7 @@ function PreviewPane({
     <div
       style={{
         flex: 'none',
-        height: 320,
+        height: 256,
         borderBottom: '0.5px solid #ededf0',
         background: '#f2f2f4',
         backgroundImage:

@@ -6,8 +6,8 @@ import { logUpscalyRuntime } from './upscaly/engine'
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: 1320,
+    height: 900,
     minWidth: 1040,
     minHeight: 680,
     show: false,

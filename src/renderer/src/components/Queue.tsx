@@ -273,6 +273,8 @@ function GridCard({
         borderRadius: 9,
         padding: 6,
         cursor: 'default',
+        width: '100%',
+        maxWidth: 200,
         background: selected ? 'rgba(20,115,230,.10)' : 'transparent',
         boxShadow: selected ? '0 0 0 2px #1473e6' : 'none'
       }}
@@ -585,8 +587,9 @@ function Queue({
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3,1fr)',
                 gridAutoRows: 'min-content',
-                gap: 16,
-                padding: '14px 10px',
+                justifyItems: 'center',
+                gap: 14,
+                padding: '12px 10px',
                 alignContent: 'start'
               }}
             >
