@@ -152,7 +152,7 @@ export interface InspectorProps {
   onToggleFlip: () => void
 }
 
-export default function Inspector(p: InspectorProps) {
+function Inspector(p: InspectorProps) {
   return (
     <div
       className="dq-scroll"
@@ -625,3 +625,5 @@ export default function Inspector(p: InspectorProps) {
     </div>
   )
 }
+
+export default React.memo(Inspector)

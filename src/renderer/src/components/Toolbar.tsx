@@ -49,7 +49,7 @@ function SegBtn({
   )
 }
 
-export default function Toolbar({
+function Toolbar({
   viewMode,
   setViewMode,
   search,
@@ -179,3 +179,5 @@ export default function Toolbar({
     </div>
   )
 }
+
+export default React.memo(Toolbar)

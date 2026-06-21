@@ -141,6 +141,11 @@ export function useDesqueeze(photos: Photo[]) {
   const leadId = selected.length > 0 ? selected[selected.length - 1] : null
   const repr: ItemSettings = leadId != null ? effectiveFor(leadId) : DEFAULT_SETTINGS
   const hasSelection = selected.length > 0
+  // Stable object so a memoized Inspector doesn't re-render on unrelated state.
+  const preset = useMemo(
+    () => ({ id: repr.presetId, name: repr.presetName, dim: repr.presetDim }),
+    [repr.presetId, repr.presetName, repr.presetDim]
+  )
 
   return {
     photos,
@@ -167,7 +172,7 @@ export function useDesqueeze(photos: Photo[]) {
     rotation: repr.rotation,
     flipH: repr.flipH,
     aspectLocked: repr.aspectLocked,
-    preset: { id: repr.presetId, name: repr.presetName, dim: repr.presetDim },
+    preset,
     targetW: repr.targetW,
     targetH: repr.targetH,
     dimW: withCommas(repr.targetW),

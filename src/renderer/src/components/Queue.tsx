@@ -340,7 +340,7 @@ function GridCard({
   )
 }
 
-export default function Queue({
+function Queue({
   rows,
   totalCount,
   selected,
@@ -522,3 +522,5 @@ export default function Queue({
     </div>
   )
 }
+
+export default React.memo(Queue)

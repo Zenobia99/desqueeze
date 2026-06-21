@@ -77,10 +77,10 @@ export default function App() {
 
   const destinationLabel = destination ? destination.split('/').pop() || 'Optimised' : 'Optimised'
 
-  function showToast(msg: string) {
+  const showToast = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 6000)
-  }
+  }, [])
 
   // ---- Live preview of the lead-selected photo ----
   const leadRow = useMemo(
@@ -126,8 +126,6 @@ export default function App() {
   const [compareOrig, setCompareOrig] = useState(false)
   // Upscale preview view: false → whole image (true proportions), true → 1:1 zoom.
   const [zoom, setZoom] = useState(false)
-  // Pan position (0..1) of the 1:1 detail view; persists across AI/Original.
-  const [pan, setPan] = useState({ x: 0.5, y: 0.5 })
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -161,11 +159,13 @@ export default function App() {
       setUpscaleKey('')
       setCompareOrig(false)
       setZoom(false)
-      setPan({ x: 0.5, y: 0.5 })
     }
   }, [previewKey, upscaleKey])
 
-  async function handlePreviewUpscale() {
+  const onToggleCompare = useCallback(() => setCompareOrig((v) => !v), [])
+  const onToggleZoom = useCallback(() => setZoom((v) => !v), [])
+
+  const handlePreviewUpscale = useCallback(async () => {
     if (!previewReq || !window.desqueeze || upscaleLoading) return
     setUpscaleLoading(true)
     const keyAtStart = previewKey
@@ -186,10 +186,9 @@ export default function App() {
       setUpscaleKey(keyAtStart)
       setCompareOrig(false)
       setZoom(false)
-      setPan({ x: 0.5, y: 0.5 })
     }
     setUpscaleLoading(false)
-  }
+  }, [previewReq, previewKey, upscaleLoading])
 
   const showingUpscaled = !!upRes && upscaleKey === previewKey
   const previewUrl = showingUpscaled
@@ -204,20 +203,28 @@ export default function App() {
     return leadRow.estLabel
   }, [leadRow, showingUpscaled, upRes])
 
-  async function handleSelectSource(next: LibrarySource) {
-    setSource(next)
-    s.clearSelection()
-    loadSource(next)
-  }
+  const handleSelectSource = useCallback(
+    (next: LibrarySource) => {
+      setSource(next)
+      s.clearSelection()
+      loadSource(next)
+    },
+    [s.clearSelection, loadSource]
+  )
 
-  async function handleAddPhotos() {
+  const onSelectPreset = useCallback(
+    (gi: number, ii: number) => s.applyPreset(s.presetGroups[gi].items[ii]),
+    [s.applyPreset, s.presetGroups]
+  )
+
+  const handleAddPhotos = useCallback(async () => {
     if (!window.desqueeze) return
     const added = await window.desqueeze.addPhotos()
     if (!added?.length) return
     const withIds: Photo[] = added.map((p) => ({ ...p, id: nextId.current++ }))
     setImported((prev) => [...prev, ...withIds])
     showToast(`Added ${withIds.length} photo${withIds.length === 1 ? '' : 's'}`)
-  }
+  }, [showToast])
 
   const removeSelected = useCallback(() => {
     if (s.selected.length === 0) return
@@ -225,7 +232,7 @@ export default function App() {
     setCache((c) => (c[source] ? { ...c, [source]: c[source]!.filter((p) => !sel.has(p.id)) } : c))
     setImported((prev) => prev.filter((p) => !sel.has(p.id)))
     s.clearSelection()
-  }, [s, source])
+  }, [s.selected, s.clearSelection, source])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -240,12 +247,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [removeSelected, s.selected.length])
 
-  async function handleChooseDestination() {
+  const handleChooseDestination = useCallback(async () => {
     const dir = await window.desqueeze?.chooseDestination()
     if (dir) setDestination(dir)
-  }
+  }, [])
 
-  async function handleExport() {
+  const handleExport = useCallback(async () => {
     if (exporting || !window.desqueeze) return
     // Export the selected photos only.
     const toExport = s.rows.filter((r) => s.selected.includes(r.photo.id))
@@ -286,7 +293,7 @@ export default function App() {
     } finally {
       setExporting(false)
     }
-  }
+  }, [exporting, s.rows, s.selected, s.effectiveFor, destination, showToast])
 
   const isLoading = loadingSource === source && !cache[source]
   const emptyMessage = isLoading
@@ -309,7 +316,7 @@ export default function App() {
         <Sidebar
           presetGroups={s.presetGroups}
           activePresetId={s.preset.id}
-          onSelectPreset={(gi, ii) => s.applyPreset(s.presetGroups[gi].items[ii])}
+          onSelectPreset={onSelectPreset}
           activeSource={source}
           onSelectSource={handleSelectSource}
         />
@@ -328,12 +335,9 @@ export default function App() {
               onPreviewUpscale={handlePreviewUpscale}
               comparing={compareOrig}
               hasComparison={!!origRes}
-              onToggleCompare={() => setCompareOrig((v) => !v)}
+              onToggleCompare={onToggleCompare}
               zoom={zoom}
-              onToggleZoom={() => setZoom((v) => !v)}
-              panX={pan.x}
-              panY={pan.y}
-              onPan={(x, y) => setPan({ x, y })}
+              onToggleZoom={onToggleZoom}
             />
           )}
           <Queue

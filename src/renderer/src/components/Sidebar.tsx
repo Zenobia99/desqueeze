@@ -66,7 +66,7 @@ function LibRow({
   )
 }
 
-export default function Sidebar({
+function Sidebar({
   presetGroups,
   activePresetId,
   onSelectPreset,
@@ -248,3 +248,5 @@ export default function Sidebar({
     </div>
   )
 }
+
+export default React.memo(Sidebar)

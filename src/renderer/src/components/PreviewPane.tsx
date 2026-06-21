@@ -1,8 +1,9 @@
 import React from 'react'
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n))
+const CENTER = { x: 0.5, y: 0.5 }
 
-export default function PreviewPane({
+function PreviewPane({
   name,
   dataUrl,
   loading,
@@ -16,10 +17,7 @@ export default function PreviewPane({
   hasComparison,
   onToggleCompare,
   zoom,
-  onToggleZoom,
-  panX,
-  panY,
-  onPan
+  onToggleZoom
 }: {
   name: string
   dataUrl: string | null
@@ -40,23 +38,28 @@ export default function PreviewPane({
   /** 1:1 zoom (pannable detail) vs whole-image fit. */
   zoom: boolean
   onToggleZoom: () => void
-  /** Pan position (0..1) of the 1:1 detail view. */
-  panX: number
-  panY: number
-  onPan: (x: number, y: number) => void
 }) {
   const imgRef = React.useRef<HTMLImageElement>(null)
+  // Pan lives here, not in the parent: during a drag we mutate the image's
+  // object-position directly (no React render per mouse-move), committing to
+  // state only on release. This keeps panning off the app's render path.
+  const [pan, setPan] = React.useState(CENTER)
+  const panRef = React.useRef(CENTER)
   const drag = React.useRef<{ sx: number; sy: number; px: number; py: number } | null>(null)
   // The pannable 1:1 view is active only when upscaled AND zoomed in.
   const panning = showingUpscaled && zoom
 
-  // Drag to pan the 1:1 view: convert pointer delta into a 0..1 object-position,
-  // scaled by how much the native image overflows its display box.
+  // Recenter whenever a fresh upscale render appears or is cleared.
+  React.useEffect(() => {
+    panRef.current = CENTER
+    setPan(CENTER)
+  }, [showingUpscaled])
+
   const onPointerDown = (e: React.PointerEvent<HTMLImageElement>): void => {
     if (!panning) return
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
-    drag.current = { sx: e.clientX, sy: e.clientY, px: panX, py: panY }
+    drag.current = { sx: e.clientX, sy: e.clientY, px: panRef.current.x, py: panRef.current.y }
   }
   const onPointerMove = (e: React.PointerEvent<HTMLImageElement>): void => {
     const d = drag.current
@@ -66,12 +69,15 @@ export default function PreviewPane({
     const overflowY = img.naturalHeight - img.clientHeight
     const nx = overflowX > 0 ? clamp01(d.px - (e.clientX - d.sx) / overflowX) : 0.5
     const ny = overflowY > 0 ? clamp01(d.py - (e.clientY - d.sy) / overflowY) : 0.5
-    onPan(nx, ny)
+    panRef.current = { x: nx, y: ny }
+    // Update the DOM directly — no setState — so dragging never re-renders.
+    img.style.objectPosition = `${nx * 100}% ${ny * 100}%`
   }
   const endDrag = (e: React.PointerEvent<HTMLImageElement>): void => {
     if (drag.current) {
       drag.current = null
       e.currentTarget.releasePointerCapture?.(e.pointerId)
+      setPan(panRef.current) // commit once, so later renders keep the position
     }
   }
 
@@ -113,7 +119,7 @@ export default function PreviewPane({
                   width: '100%',
                   height: '100%',
                   objectFit: 'none' as const,
-                  objectPosition: `${panX * 100}% ${panY * 100}%`,
+                  objectPosition: `${pan.x * 100}% ${pan.y * 100}%`,
                   cursor: 'grab',
                   touchAction: 'none'
                 }
@@ -276,3 +282,5 @@ export default function PreviewPane({
     </div>
   )
 }
+
+export default React.memo(PreviewPane)

@@ -1,7 +1,7 @@
 import React from 'react'
 import { ChevronDown, DownloadTray } from './Icons'
 
-export default function ExportBar({
+function ExportBar({
   headline,
   totalSize,
   savings,
@@ -93,3 +93,5 @@ export default function ExportBar({
     </div>
   )
 }
+
+export default React.memo(ExportBar)
