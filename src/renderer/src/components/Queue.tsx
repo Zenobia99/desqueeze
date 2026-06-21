@@ -273,13 +273,18 @@ function GridCard({
         borderRadius: 9,
         padding: 6,
         cursor: 'default',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
         background: selected ? 'rgba(20,115,230,.10)' : 'transparent',
         boxShadow: selected ? '0 0 0 2px #1473e6' : 'none'
       }}
     >
       <div
         style={{
-          aspectRatio: '16 / 9',
+          flex: 1,
+          minHeight: 0,
           borderRadius: 7,
           boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,.1)',
           position: 'relative',
@@ -325,7 +330,7 @@ function GridCard({
           </div>
         )}
       </div>
-      <div style={{ padding: '8px 2px 2px' }}>
+      <div style={{ flex: 'none', padding: '8px 2px 2px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ font: '600 12.5px -apple-system', color: '#1d1d1f' }}>
             {r.targetLabel}
@@ -579,12 +584,12 @@ function Queue({
               style={{
                 flex: 1,
                 minWidth: 0,
+                alignSelf: 'stretch',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3,1fr)',
-                gridAutoRows: 'min-content',
+                gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
                 gap: 18,
-                padding: '16px 10px',
-                alignContent: 'center'
+                padding: '16px 10px'
               }}
             >
               {pageRows.map((r) => (
