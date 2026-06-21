@@ -1,7 +1,7 @@
 import React from 'react'
 import type { LibrarySource, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import photosIcon from '../assets/photos-icon.png'
-import { ClockIcon, PhotoMountainIcon, AlbumsIcon } from './Icons'
+import { ClockIcon, PhotoMountainIcon } from './Icons'
 import UpscalyPanel from './UpscalyPanel'
 
 const sectionLabel: React.CSSProperties = {
@@ -127,12 +127,6 @@ function Sidebar({
           icon={<PhotoMountainIcon color={activeSource === 'last-import' ? '#fff' : '#0a84ff'} />}
           label="Last Import"
           count="12"
-        />
-        <LibRow
-          selected={activeSource === 'albums'}
-          onClick={() => onSelectSource('albums')}
-          icon={<AlbumsIcon color={activeSource === 'albums' ? '#fff' : '#8a8a8e'} />}
-          label="Albums"
         />
       </div>
 
