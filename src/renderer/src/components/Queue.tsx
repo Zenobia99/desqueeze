@@ -1,7 +1,7 @@
 import React from 'react'
 import type { ComputedRow } from '@shared/compute'
 import type { ViewMode } from '@shared/types'
-import { ChevronDown, ArrowRight, HeartIcon, CheckIcon } from './Icons'
+import { ChevronDown, ChevronRight, ArrowRight, HeartIcon, CheckIcon } from './Icons'
 
 const mono = "ui-monospace,'SF Mono',Menlo,monospace"
 
@@ -340,6 +340,42 @@ function GridCard({
   )
 }
 
+function PageArrow({
+  dir,
+  disabled,
+  onClick
+}: {
+  dir: 'left' | 'right'
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === 'left' ? 'Previous photos' : 'Next photos'}
+      style={{
+        flex: 'none',
+        width: 38,
+        height: 38,
+        margin: '0 6px',
+        borderRadius: '50%',
+        border: '0.5px solid #e2e2e6',
+        background: '#ffffff',
+        boxShadow: disabled ? 'none' : '0 1px 4px rgba(0,0,0,.10)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.3 : 1,
+        transition: 'opacity .12s'
+      }}
+    >
+      <ChevronRight size={16} color="#5a5a5f" style={{ transform: dir === 'left' ? 'rotate(180deg)' : 'none' }} />
+    </button>
+  )
+}
+
 function Queue({
   rows,
   totalCount,
@@ -386,6 +422,16 @@ function Queue({
   }, [viewMode])
   const start = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
   const end = Math.min(rows.length, Math.ceil((scrollTop + (viewportH || 700)) / ROW_H) + OVERSCAN)
+
+  // Gallery view: a page of 6 photos at a time, shuffled with side arrows.
+  const PAGE = 6
+  const [page, setPage] = React.useState(0)
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE))
+  React.useEffect(() => {
+    setPage((p) => Math.min(p, pageCount - 1))
+  }, [pageCount])
+  const pageStart = page * PAGE
+  const pageRows = rows.slice(pageStart, pageStart + PAGE)
 
   return (
     <div
@@ -526,28 +572,60 @@ function Queue({
           </div>
         </>
       ) : (
-        <div
-          className="dq-scroll"
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '16px 18px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3,1fr)',
-            gap: 14,
-            alignContent: 'start'
-          }}
-        >
-          {rows.map((r) => (
-            <GridCard
-              key={r.photo.id}
-              r={r}
-              selected={isSel(r.photo.id)}
-              rotation={r.rotation}
-              flipH={r.flipH}
-              onClick={() => onToggle(r.photo.id)}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: 0, padding: '0 8px' }}>
+            <PageArrow dir="left" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3,1fr)',
+                gridAutoRows: 'min-content',
+                gap: 18,
+                padding: '16px 10px',
+                alignContent: 'center'
+              }}
+            >
+              {pageRows.map((r) => (
+                <GridCard
+                  key={r.photo.id}
+                  r={r}
+                  selected={isSel(r.photo.id)}
+                  rotation={r.rotation}
+                  flipH={r.flipH}
+                  onClick={() => onToggle(r.photo.id)}
+                />
+              ))}
+            </div>
+            <PageArrow
+              dir="right"
+              disabled={page >= pageCount - 1}
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
             />
-          ))}
+          </div>
+          <div
+            style={{
+              flex: 'none',
+              height: 38,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              borderTop: '0.5px solid #f2f2f4',
+              font: '500 11.5px -apple-system',
+              color: '#8a8a8e'
+            }}
+          >
+            <span>
+              {rows.length === 0 ? '0' : `${pageStart + 1}–${Math.min(pageStart + PAGE, rows.length)}`} of{' '}
+              {rows.length}
+            </span>
+            <span style={{ color: '#c8c8cc' }}>·</span>
+            <span>
+              Page {page + 1} / {pageCount}
+            </span>
+          </div>
         </div>
       )}
     </div>

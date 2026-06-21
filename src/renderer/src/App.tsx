@@ -313,13 +313,7 @@ export default function App() {
       />
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <Sidebar
-          presetGroups={s.presetGroups}
-          activePresetId={s.preset.id}
-          onSelectPreset={onSelectPreset}
-          activeSource={source}
-          onSelectSource={handleSelectSource}
-        />
+        <Sidebar activeSource={source} onSelectSource={handleSelectSource} />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {leadRow && (
@@ -357,6 +351,8 @@ export default function App() {
           selCount={s.selCount}
           disabled={!s.hasSelection}
           preset={s.preset}
+          presetGroups={s.presetGroups}
+          onSelectPreset={onSelectPreset}
           format={s.format}
           setFormat={s.setFormat}
           targetW={s.targetW}

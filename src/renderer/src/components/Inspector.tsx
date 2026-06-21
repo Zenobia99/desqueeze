@@ -1,5 +1,5 @@
 import React from 'react'
-import type { OutputFormat, ResizeMode, UpscaleModel, UpscaleSpeed } from '@shared/types'
+import type { OutputFormat, PresetGroup, ResizeMode, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import {
   ChevronRight,
   ChevronDown,
@@ -12,7 +12,9 @@ import {
   FlipIcon,
   FillIcon,
   FitIcon,
-  StretchIcon
+  StretchIcon,
+  SearchIcon,
+  CheckIcon
 } from './Icons'
 
 const mono = 'ui-monospace,Menlo,monospace'
@@ -124,6 +126,8 @@ export interface InspectorProps {
   selCount: number
   disabled: boolean
   preset: { id: string; name: string; dim: string }
+  presetGroups: PresetGroup[]
+  onSelectPreset: (groupIndex: number, itemIndex: number) => void
   format: OutputFormat
   setFormat: (f: OutputFormat) => void
   targetW: number
@@ -153,11 +157,13 @@ export interface InspectorProps {
 }
 
 function Inspector(p: InspectorProps) {
+  const [presetOpen, setPresetOpen] = React.useState(false)
+  const [presetFilter, setPresetFilter] = React.useState('')
   return (
     <div
       className="dq-scroll"
       style={{
-        width: 328,
+        width: 360,
         flex: 'none',
         background: '#f7f7f9',
         borderLeft: '0.5px solid #dcdce0',
@@ -197,9 +203,10 @@ function Inspector(p: InspectorProps) {
         </div>
       </div>
 
-      {/* Preset chip */}
+      {/* Preset chip → opens the preset (template) picker, in-panel. */}
       <div style={{ padding: '4px 18px 14px' }}>
         <button
+          onClick={() => setPresetOpen((o) => !o)}
           style={{
             width: '100%',
             display: 'flex',
@@ -207,7 +214,7 @@ function Inspector(p: InspectorProps) {
             gap: 10,
             height: 42,
             padding: '0 12px',
-            border: '0.5px solid #d8d8dc',
+            border: `0.5px solid ${presetOpen ? '#1473e6' : '#d8d8dc'}`,
             borderRadius: 9,
             background: '#ffffff',
             boxShadow: '0 1px 2px rgba(0,0,0,.04)',
@@ -233,8 +240,118 @@ function Inspector(p: InspectorProps) {
             <span style={{ font: '600 13.5px -apple-system', color: '#1d1d1f' }}>{p.preset.name}</span>
             <span style={{ font: '400 11.5px -apple-system', color: '#8a8a8e' }}>{p.preset.dim}</span>
           </div>
-          <ChevronRight style={{ marginLeft: 'auto' }} />
+          <ChevronDown style={{ marginLeft: 'auto', transform: presetOpen ? 'rotate(180deg)' : 'none' }} />
         </button>
+
+        {presetOpen && (
+          <div
+            style={{
+              marginTop: 8,
+              border: '0.5px solid #d8d8dc',
+              borderRadius: 9,
+              background: '#ffffff',
+              boxShadow: '0 4px 14px rgba(0,0,0,.10)',
+              overflow: 'hidden'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                height: 30,
+                margin: 8,
+                padding: '0 9px',
+                background: '#eef0f2',
+                borderRadius: 6
+              }}
+            >
+              <SearchIcon size={12} />
+              <input
+                className="dq-in"
+                placeholder="Filter presets"
+                value={presetFilter}
+                autoFocus
+                onChange={(e) => setPresetFilter(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  font: '400 12.5px -apple-system',
+                  color: '#1d1d1f',
+                  width: '100%'
+                }}
+              />
+            </div>
+            <div className="dq-scroll" style={{ maxHeight: 260, overflowY: 'auto', padding: '0 8px 8px' }}>
+              {p.presetGroups.map((grp, gi) => {
+                const items = grp.items
+                  .map((it, ii) => ({ it, ii }))
+                  .filter(({ it }) => it.name.toLowerCase().includes(presetFilter.toLowerCase()))
+                if (items.length === 0) return null
+                return (
+                  <div key={grp.name}>
+                    <div
+                      style={{
+                        font: '600 10.5px -apple-system',
+                        letterSpacing: '.03em',
+                        textTransform: 'uppercase',
+                        color: '#b0b0b5',
+                        padding: '8px 6px 3px'
+                      }}
+                    >
+                      {grp.name}
+                    </div>
+                    {items.map(({ it, ii }) => {
+                      const active = p.preset.id === it.id
+                      return (
+                        <div
+                          key={it.id}
+                          className={active ? '' : 'dq-hover'}
+                          onClick={() => {
+                            p.onSelectPreset(gi, ii)
+                            setPresetOpen(false)
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '6px 8px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            background: active ? '#1473e6' : 'transparent'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                            <span
+                              style={{
+                                font: '500 13px -apple-system',
+                                color: active ? '#fff' : '#1d1d1f',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              {it.name}
+                            </span>
+                            <span
+                              style={{
+                                font: '400 11px ui-monospace,Menlo,monospace',
+                                color: active ? 'rgba(255,255,255,.8)' : '#a8a8ad'
+                              }}
+                            >
+                              {it.dim}
+                            </span>
+                          </div>
+                          {active && <CheckIcon style={{ marginLeft: 'auto' }} />}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Format */}
@@ -406,8 +523,8 @@ function Inspector(p: InspectorProps) {
             </button>
           </div>
           {p.upscale && (
-            <div style={{ padding: '0 12px 12px' }}>
-              <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
+            <div style={{ padding: '2px 12px 14px' }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                 {MODELS.map((m) => {
                   const a = p.upModel === m
                   return (
@@ -472,7 +589,7 @@ function Inspector(p: InspectorProps) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 8,
-                  marginTop: 10,
+                  marginTop: 12,
                   font: '400 11.5px -apple-system',
                   color: '#8a8a8e'
                 }}
