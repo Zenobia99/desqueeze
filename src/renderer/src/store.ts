@@ -60,6 +60,7 @@ export function useDesqueeze(photos: Photo[]) {
     [applyPatch]
   )
   const setMaxFactor = useCallback((maxFactor: number) => applyPatch({ maxFactor }), [applyPatch])
+  const setMaxSizeKb = useCallback((maxSizeKb: number) => applyPatch({ maxSizeKb }), [applyPatch])
   const rotateCW = useCallback(
     () => applyEach((c) => ({ rotation: (c.rotation + 90) % 360 })),
     [applyEach]
@@ -127,6 +128,7 @@ export function useDesqueeze(photos: Photo[]) {
             targetH: e.targetH,
             fit: e.fit,
             quality: e.quality,
+            maxSizeKb: e.maxSizeKb,
             rotation: e.rotation,
             flipH: e.flipH
           },
@@ -169,6 +171,7 @@ export function useDesqueeze(photos: Photo[]) {
     upModel: repr.upModel,
     upSpeed: repr.upSpeed,
     maxFactor: repr.maxFactor,
+    maxSizeKb: repr.maxSizeKb,
     rotation: repr.rotation,
     flipH: repr.flipH,
     aspectLocked: repr.aspectLocked,
@@ -188,6 +191,7 @@ export function useDesqueeze(photos: Photo[]) {
     setUpModel,
     setUpSpeed,
     setMaxFactor,
+    setMaxSizeKb,
     setTargetW,
     setTargetH,
     rotateCW,

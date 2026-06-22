@@ -14,6 +14,8 @@ export interface ProcessOptions {
   rotation?: number
   /** Mirror horizontally. */
   flipH?: boolean
+  /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
+  maxSizeKb?: number
 }
 
 export interface ProcessOutput {
@@ -76,27 +78,56 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
   const q = Math.max(1, Math.min(100, Math.round(opts.quality)))
   const fmt = resolveFormat(opts.format)
 
-  switch (fmt) {
-    case 'png':
-      pipeline.png({ quality: q, compressionLevel: 9 })
-      break
-    case 'webp':
-      pipeline.webp({ quality: q })
-      break
-    case 'tiff':
-      pipeline.tiff({ quality: q })
-      break
-    case 'heif':
-      // HEIC encoding requires a libheif-enabled sharp build; fall back gracefully.
-      pipeline.heif({ quality: q, compression: 'hevc' })
-      break
-    case 'jpeg':
-    default:
-      pipeline.jpeg({ quality: q, mozjpeg: true })
-      break
+  // Encode the (cloned) pipeline at a given quality. Cloning lets us try several
+  // qualities when hitting a target file size.
+  const encodeAt = (qq: number): Promise<{ data: Buffer; info: sharp.OutputInfo }> => {
+    const p = pipeline.clone()
+    switch (fmt) {
+      case 'png':
+        p.png({ quality: qq, compressionLevel: 9 })
+        break
+      case 'webp':
+        p.webp({ quality: qq })
+        break
+      case 'tiff':
+        p.tiff({ quality: qq })
+        break
+      case 'heif':
+        // HEIC encoding requires a libheif-enabled sharp build; fall back gracefully.
+        p.heif({ quality: qq, compression: 'hevc' })
+        break
+      case 'jpeg':
+      default:
+        p.jpeg({ quality: qq, mozjpeg: true })
+        break
+    }
+    return p.toBuffer({ resolveWithObject: true })
   }
 
-  const { data, info } = await pipeline.toBuffer({ resolveWithObject: true })
+  const targetBytes = opts.maxSizeKb && opts.maxSizeKb > 0 ? opts.maxSizeKb * 1024 : 0
+  const lossy = fmt === 'jpeg' || fmt === 'webp' || fmt === 'heif'
+  const sizeOf = (r: { data: Buffer; info: sharp.OutputInfo }): number => r.info.size ?? r.data.length
+
+  let out = await encodeAt(q)
+  if (targetBytes && lossy && sizeOf(out) > targetBytes) {
+    // Highest quality (≤ requested) that fits the target, via binary search.
+    let lo = 10
+    let hi = q - 1
+    let best: typeof out | null = null
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2)
+      const r = await encodeAt(mid)
+      if (sizeOf(r) <= targetBytes) {
+        best = r
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+    out = best ?? (await encodeAt(10)) // smallest we can do if nothing fits
+  }
+
+  const { data, info } = out
   return {
     buffer: data,
     width: info.width,

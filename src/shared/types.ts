@@ -66,6 +66,8 @@ export interface ItemSettings {
   upSpeed: UpscaleSpeed
   /** AI upscale factor (Upscayl -s): 2 | 3 | 4. */
   maxFactor: number
+  /** Cap output to this many KB by auto-tuning quality (0 = off, lossy only). */
+  maxSizeKb: number
   presetId: string
   presetName: string
   presetDim: string
@@ -114,11 +116,23 @@ export interface ExportItemRequest {
   upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
+  /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
+  maxSizeKb?: number
 }
 
 export interface ExportRequest {
   items: ExportItemRequest[]
   destination: string
+}
+
+/** Per-item progress emitted during an export run. */
+export interface ExportProgress {
+  /** 1-based index of the item that just finished. */
+  index: number
+  total: number
+  id: number
+  name: string
+  ok: boolean
 }
 
 export interface ExportItemResult {
@@ -155,6 +169,8 @@ export interface PreviewRequest {
   upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
+  /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
+  maxSizeKb?: number
   /** Render at the real export box + format to report exact output bytes. */
   fullEstimate?: boolean
   /**

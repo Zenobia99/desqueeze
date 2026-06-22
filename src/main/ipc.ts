@@ -6,6 +6,7 @@ import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
 import { SPEED_CAP } from '@shared/data'
 import type {
+  ExportProgress,
   ExportRequest,
   ExportResult,
   ExportItemResult,
@@ -16,6 +17,41 @@ import type {
   PreviewResult,
   SourceLoadResult
 } from '@shared/types'
+
+const IMAGE_EXTS = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.tiff',
+  '.tif',
+  '.heic',
+  '.heif',
+  '.gif',
+  '.bmp',
+  '.avif'
+])
+
+/** Expand dropped paths into image files (recurses one level into folders). */
+async function expandToImageFiles(paths: string[]): Promise<string[]> {
+  const out: string[] = []
+  for (const p of paths) {
+    try {
+      const st = await fs.stat(p)
+      if (st.isDirectory()) {
+        const entries = await fs.readdir(p)
+        for (const name of entries) {
+          if (IMAGE_EXTS.has(extname(name).toLowerCase())) out.push(join(p, name))
+        }
+      } else if (IMAGE_EXTS.has(extname(p).toLowerCase())) {
+        out.push(p)
+      }
+    } catch {
+      /* skip unreadable paths */
+    }
+  }
+  return out
+}
 
 function mapFormat(f: string | undefined): OutputFormat {
   switch ((f || '').toLowerCase()) {
@@ -66,13 +102,18 @@ const photosLibrary = new PhotosLibrarySource()
 const upscaly = createUpscalyEngine()
 
 /** Core export pipeline — shared by the IPC handler and verification harness. */
-export async function runExport(req: ExportRequest): Promise<ExportResult> {
+export async function runExport(
+  req: ExportRequest,
+  onProgress?: (p: ExportProgress) => void
+): Promise<ExportResult> {
   const destination = req.destination || join(app.getPath('downloads'), 'Desqueeze Export')
   await fs.mkdir(destination, { recursive: true })
 
   const results: ExportItemResult[] = []
+  const total = req.items.length
 
-  for (const item of req.items) {
+  for (let i = 0; i < req.items.length; i++) {
+    const item = req.items[i]
     // Resolve source pixels: Photos-library asset or imported file on disk.
     const fromLibrary = !!item.photosId
     const fromDisk = !!item.sourcePath
@@ -107,7 +148,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
         quality: item.quality,
         fit: item.fit,
         rotation: item.rotation,
-        flipH: item.flipH
+        flipH: item.flipH,
+        maxSizeKb: item.maxSizeKb
       })
 
       const ext = fileExtension(item.format)
@@ -130,6 +172,8 @@ export async function runExport(req: ExportRequest): Promise<ExportResult> {
         error: err instanceof Error ? err.message : String(err)
       })
     }
+    const last = results[results.length - 1]
+    onProgress?.({ index: i + 1, total, id: item.id, name: item.name, ok: last.ok })
   }
 
   return { ok: results.every((r) => r.ok), destination, items: results }
@@ -209,7 +253,8 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         quality: req.quality,
         fit: req.fit,
         rotation: req.rotation,
-        flipH: req.flipH
+        flipH: req.flipH,
+        maxSizeKb: req.maxSizeKb
       })
       // For display: when cropPreview is set, return a high-resolution image
       // (capped, JPEG) that the renderer shows at 1:1 and lets the user pan over,
@@ -307,6 +352,12 @@ export function registerIpc(): void {
     return imported.filter((p): p is ImportedPhoto => p !== null)
   })
 
+  ipcMain.handle('photos:import', async (_e, paths: string[]): Promise<ImportedPhoto[]> => {
+    const files = await expandToImageFiles(paths)
+    const imported = await Promise.all(files.map(importFile))
+    return imported.filter((p): p is ImportedPhoto => p !== null)
+  })
+
   ipcMain.handle('dialog:chooseDestination', async (): Promise<string | null> => {
     const res = await dialog.showOpenDialog({
       title: 'Choose export destination',
@@ -316,8 +367,10 @@ export function registerIpc(): void {
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
 
-  ipcMain.handle('export:run', async (_e, req: ExportRequest): Promise<ExportResult> => {
-    return runExport(req)
+  ipcMain.handle('export:run', async (e, req: ExportRequest): Promise<ExportResult> => {
+    return runExport(req, (p: ExportProgress) => {
+      if (!e.sender.isDestroyed()) e.sender.send('export:progress', p)
+    })
   })
 
   ipcMain.handle('shell:reveal', async (_e, path: string): Promise<void> => {

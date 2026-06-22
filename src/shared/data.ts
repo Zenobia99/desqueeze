@@ -129,6 +129,7 @@ export const DEFAULT_SETTINGS: ItemSettings = {
   upModel: 'Standard',
   upSpeed: 'Balanced',
   maxFactor: 4,
+  maxSizeKb: 0,
   presetId: DEFAULT_PRESET.id,
   presetName: DEFAULT_PRESET.name,
   presetDim: DEFAULT_PRESET.dim

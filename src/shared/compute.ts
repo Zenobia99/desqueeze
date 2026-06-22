@@ -86,6 +86,8 @@ export interface RowSettings {
   fit: ResizeMode
   /** 1–100 encode quality (drives the size estimate for lossy formats). */
   quality: number
+  /** Cap output to this many KB (0/undefined = off; lossy formats only). */
+  maxSizeKb?: number
   /** 0 | 90 | 180 | 270 (clockwise). */
   rotation?: number
   flipH?: boolean
@@ -138,7 +140,9 @@ export function computeRow(photo: Photo, s: RowSettings, hasOverride: boolean): 
   const upscale = ratio > 1
   const scale = ratio * 100
   const scaleLabel = (scale >= 100 ? '+' : '') + Math.round(scale) + '%'
-  const estKb = estimateKb(outW, outH, s.format, s.quality)
+  let estKb = estimateKb(outW, outH, s.format, s.quality)
+  // A file-size cap (lossy only) means the export auto-tunes quality to fit.
+  if (s.maxSizeKb && s.maxSizeKb > 0 && LOSSY[s.format]) estKb = Math.min(estKb, s.maxSizeKb)
 
   const quarterTurned = ((s.rotation ?? 0) / 90) % 2 !== 0
   const dispW = quarterTurned ? outH : outW

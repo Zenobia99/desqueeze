@@ -89,6 +89,50 @@ function DimField({
   )
 }
 
+function SizeField({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [text, setText] = React.useState(String(value))
+  React.useEffect(() => setText(String(value)), [value])
+  const commit = (): void => {
+    const n = parseInt(text.replace(/[^0-9]/g, ''), 10)
+    if (Number.isFinite(n) && n > 0) onCommit(n)
+    else setText(String(value))
+  }
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        height: 24,
+        padding: '0 8px',
+        background: '#f2f2f4',
+        border: '0.5px solid #d8d8dc',
+        borderRadius: 6
+      }}
+    >
+      <input
+        className="dq-in"
+        value={text}
+        inputMode="numeric"
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+        }}
+        style={{
+          width: 46,
+          border: 'none',
+          background: 'transparent',
+          font: `600 12px ${mono}`,
+          color: '#1d1d1f',
+          textAlign: 'right'
+        }}
+      />
+      <span style={{ font: '400 11px -apple-system', color: '#b0b0b5' }}>KB</span>
+    </div>
+  )
+}
+
 function CropBtn({
   onClick,
   active,
@@ -137,6 +181,8 @@ export interface InspectorProps {
   setFit: (f: ResizeMode) => void
   quality: number
   setQuality: (q: number) => void
+  maxSizeKb: number
+  setMaxSizeKb: (n: number) => void
   rotation: number
   flipH: boolean
   onRotateCW: () => void
@@ -520,6 +566,7 @@ function Inspector(p: InspectorProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 8,
             marginTop: 11,
             padding: '9px 11px',
             background: '#ffffff',
@@ -528,8 +575,44 @@ function Inspector(p: InspectorProps) {
           }}
         >
           <span style={{ font: '400 12.5px -apple-system', color: '#3a3a3f' }}>Target max size</span>
-          <span style={{ font: `600 12.5px ${mono}`, color: '#1d1d1f' }}>500 KB</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {p.maxSizeKb > 0 && (
+              <SizeField value={p.maxSizeKb} onCommit={(n) => p.setMaxSizeKb(n)} />
+            )}
+            <button
+              onClick={() => p.setMaxSizeKb(p.maxSizeKb > 0 ? 0 : 500)}
+              title="Auto-tune quality to keep each file under this size (JPEG/WebP/HEIC)"
+              style={{
+                width: 40,
+                height: 22,
+                flex: 'none',
+                border: 'none',
+                borderRadius: 11,
+                cursor: 'pointer',
+                padding: 2,
+                display: 'flex',
+                alignItems: 'center',
+                background: p.maxSizeKb > 0 ? '#34c759' : '#d4d4d9',
+                justifyContent: p.maxSizeKb > 0 ? 'flex-end' : 'flex-start'
+              }}
+            >
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,.3)'
+                }}
+              />
+            </button>
+          </div>
         </div>
+        {p.maxSizeKb > 0 && (
+          <div style={{ font: '400 11px -apple-system', color: '#a0a0a5', marginTop: 6 }}>
+            Quality is auto-tuned per image to stay under {p.maxSizeKb} KB (lossy formats).
+          </div>
+        )}
       </div>
 
       {/* Filename */}

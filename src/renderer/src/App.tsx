@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ExportItemRequest, LibrarySource, Photo, PreviewRequest, PreviewResult } from '@shared/types'
+import type {
+  ExportItemRequest,
+  ImportedPhoto,
+  LibrarySource,
+  Photo,
+  PreviewRequest,
+  PreviewResult
+} from '@shared/types'
 import { computeTotals, fmtSize } from '@shared/compute'
 import { useDesqueeze } from './store'
 import Toolbar from './components/Toolbar'
@@ -66,6 +73,7 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [destination, setDestination] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number; name: string } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const visibleRows = useMemo(() => {
@@ -113,7 +121,8 @@ export default function App() {
       needsUpscale: canUpscale,
       upModel: e.upModel,
       upSpeed: e.upSpeed,
-      maxFactor: e.maxFactor
+      maxFactor: e.maxFactor,
+      maxSizeKb: e.maxSizeKb
     }
   }, [leadRow, s, canUpscale])
   const previewKey = previewReq ? JSON.stringify(previewReq) : ''
@@ -223,22 +232,52 @@ export default function App() {
     [s.applyPreset, s.presetGroups]
   )
 
+  // Merge a batch of imported photos: dedupe by path, newest-first, surface them
+  // in Last Import, and report what happened. Shared by the dialog and drag-drop.
+  const addImported = useCallback(
+    (items: ImportedPhoto[]) => {
+      if (!items.length) {
+        showToast('No images found to add')
+        return
+      }
+      const seen = new Set(imported.map((p) => p.path).filter(Boolean))
+      const fresh = items.filter((p) => !p.path || !seen.has(p.path))
+      const withIds: Photo[] = fresh.map((p) => ({ ...p, id: nextId.current++ }))
+      if (withIds.length) {
+        setImported((prev) => [...withIds, ...prev])
+        setSource('last-import')
+        loadSource('last-import')
+      }
+      const dup = items.length - withIds.length
+      showToast(
+        withIds.length
+          ? `Added ${withIds.length} photo${withIds.length === 1 ? '' : 's'}${dup ? ` · ${dup} already added` : ''}`
+          : 'Those photos are already in the queue'
+      )
+    },
+    [imported, showToast, loadSource]
+  )
+
   const handleAddPhotos = useCallback(async () => {
     if (!window.desqueeze) return
     const added = await window.desqueeze.addPhotos()
-    if (!added?.length) return
-    // Skip files already in the queue (same path) so re-adding doesn't duplicate.
-    const seen = new Set(imported.map((p) => p.path).filter(Boolean))
-    const fresh = added.filter((p) => !p.path || !seen.has(p.path))
-    const withIds: Photo[] = fresh.map((p) => ({ ...p, id: nextId.current++ }))
-    if (withIds.length) setImported((prev) => [...withIds, ...prev])
-    const dup = added.length - withIds.length
-    showToast(
-      withIds.length
-        ? `Added ${withIds.length} photo${withIds.length === 1 ? '' : 's'}${dup ? ` · ${dup} already added` : ''}`
-        : 'Those photos are already in the queue'
-    )
-  }, [showToast, imported])
+    if (added?.length) addImported(added)
+  }, [addImported])
+
+  const [dragging, setDragging] = useState(false)
+  const onDropFiles = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragging(false)
+      if (!window.desqueeze) return
+      const files = Array.from(e.dataTransfer.files)
+      if (!files.length) return
+      const paths = files.map((f) => window.desqueeze!.getPathForFile(f)).filter(Boolean)
+      if (!paths.length) return
+      addImported(await window.desqueeze.importPaths(paths))
+    },
+    [addImported]
+  )
 
   const removeSelected = useCallback(() => {
     if (s.selected.length === 0) return
@@ -294,14 +333,27 @@ export default function App() {
           needsUpscale: r.upscale && e.upscale,
           upModel: e.upModel,
           upSpeed: e.upSpeed,
-          maxFactor: e.maxFactor
+          maxFactor: e.maxFactor,
+          maxSizeKb: e.maxSizeKb
         }
       })
-      const res = await window.desqueeze.exportPhotos({ items, destination: destination ?? '' })
-      const ok = res.items.filter((i) => i.ok).length
-      showToast(`Exported ${ok}/${res.items.length} → ${res.destination}`)
-      const first = res.items.find((i) => i.ok && i.outputPath)
-      if (first?.outputPath) window.desqueeze.reveal(first.outputPath)
+      setProgress({ done: 0, total: items.length, name: '' })
+      const off = window.desqueeze.onExportProgress((p) =>
+        setProgress({ done: p.index, total: p.total, name: p.name })
+      )
+      try {
+        const res = await window.desqueeze.exportPhotos({ items, destination: destination ?? '' })
+        const ok = res.items.filter((i) => i.ok).length
+        const failed = res.items.length - ok
+        showToast(
+          `Exported ${ok}/${res.items.length}${failed ? ` · ${failed} failed` : ''} → ${res.destination}`
+        )
+        const first = res.items.find((i) => i.ok && i.outputPath)
+        if (first?.outputPath) window.desqueeze.reveal(first.outputPath)
+      } finally {
+        off()
+        setProgress(null)
+      }
     } catch (err) {
       showToast(`Export failed: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
@@ -317,7 +369,17 @@ export default function App() {
       : undefined
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+    <div
+      style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff', position: 'relative' }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        if (!dragging) setDragging(true)
+      }}
+      onDragLeave={(e) => {
+        if (!e.relatedTarget) setDragging(false)
+      }}
+      onDrop={onDropFiles}
+    >
       <Toolbar
         viewMode={s.viewMode}
         setViewMode={s.setViewMode}
@@ -392,6 +454,8 @@ export default function App() {
           setFit={s.setFit}
           quality={s.quality}
           setQuality={s.setQuality}
+          maxSizeKb={s.maxSizeKb}
+          setMaxSizeKb={s.setMaxSizeKb}
           rotation={s.rotation}
           flipH={s.flipH}
           onRotateCW={s.rotateCW}
@@ -416,7 +480,74 @@ export default function App() {
         onExport={handleExport}
       />
 
-      {toast && (
+      {progress && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 72,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 360,
+            maxWidth: '80%',
+            background: 'rgba(28,28,30,.94)',
+            color: '#fff',
+            padding: '11px 14px',
+            borderRadius: 10,
+            boxShadow: '0 6px 20px rgba(0,0,0,.3)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12px -apple-system', marginBottom: 7 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>
+              {progress.name ? `Exporting ${progress.name}` : 'Exporting…'}
+            </span>
+            <span style={{ flex: 'none', color: 'rgba(255,255,255,.75)' }}>
+              {progress.done}/{progress.total}
+            </span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,.18)', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%`,
+                background: 'linear-gradient(90deg,#4a91f5,#1366d6)',
+                transition: 'width .15s ease'
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {dragging && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 50,
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(20,115,230,.10)',
+            border: '3px dashed rgba(20,115,230,.6)',
+            borderRadius: 8
+          }}
+        >
+          <div
+            style={{
+              padding: '14px 22px',
+              borderRadius: 12,
+              background: 'rgba(28,28,30,.92)',
+              color: '#fff',
+              font: '600 15px -apple-system',
+              boxShadow: '0 8px 24px rgba(0,0,0,.35)'
+            }}
+          >
+            Drop photos to add
+          </div>
+        </div>
+      )}
+
+      {toast && !progress && (
         <div
           style={{
             position: 'fixed',
