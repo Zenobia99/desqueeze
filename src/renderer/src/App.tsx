@@ -417,6 +417,7 @@ export default function App() {
           maxFactor={s.maxFactor}
           setMaxFactor={s.setMaxFactor}
           upscaleDisabled={!s.hasSelection}
+          onAddPhotos={handleAddPhotos}
         />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>

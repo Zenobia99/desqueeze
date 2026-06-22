@@ -71,7 +71,8 @@ function Sidebar({
   setUpSpeed,
   maxFactor,
   setMaxFactor,
-  upscaleDisabled
+  upscaleDisabled,
+  onAddPhotos
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
@@ -84,6 +85,7 @@ function Sidebar({
   maxFactor: number
   setMaxFactor: (n: number) => void
   upscaleDisabled: boolean
+  onAddPhotos?: () => void
 }) {
   return (
     <div
@@ -91,10 +93,12 @@ function Sidebar({
       style={{
         width: 236,
         flex: 'none',
+        display: 'flex',
+        flexDirection: 'column',
         background: '#f4f4f6',
         borderRight: '0.5px solid #dcdce0',
         overflowY: 'auto',
-        padding: '12px 10px 18px'
+        padding: '12px 10px 14px'
       }}
     >
       <div style={{ ...sectionLabel, padding: '6px 8px 5px' }}>Library</div>
@@ -142,7 +146,68 @@ function Sidebar({
         setMaxFactor={setMaxFactor}
         disabled={upscaleDisabled}
       />
+
+      {/* Pinned to the bottom of the sidebar's empty space: how to add photos. */}
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 9,
+          textAlign: 'center'
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            padding: '16px 12px',
+            border: '1.5px dashed #cfcfd6',
+            borderRadius: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8
+          }}
+        >
+          <DropGlyph />
+          <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
+            Drag &amp; drop photos or a folder anywhere in the window.
+          </div>
+          {onAddPhotos && (
+            <button
+              onClick={onAddPhotos}
+              style={{
+                marginTop: 2,
+                height: 28,
+                padding: '0 14px',
+                border: 'none',
+                borderRadius: 7,
+                background: '#1366d6',
+                color: '#fff',
+                font: '600 12px -apple-system',
+                cursor: 'pointer'
+              }}
+            >
+              Add Photos…
+            </button>
+          )}
+        </div>
+      </div>
     </div>
+  )
+}
+
+// Empty-state glyph: a photo tile with a downward "drop here" arrow.
+function DropGlyph() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 52 52" fill="none" aria-hidden>
+      <rect x="6" y="10" width="40" height="30" rx="5" stroke="#c8c8cf" strokeWidth="2.5" />
+      <circle cx="17" cy="20" r="3.5" fill="#d4d4da" />
+      <path d="M9 35l11-11 8 8 6-5 9 9" stroke="#d4d4da" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M26 28v15m0 0l-5-5m5 5l5-5" stroke="#1366d6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
