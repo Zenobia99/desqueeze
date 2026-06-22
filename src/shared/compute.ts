@@ -77,6 +77,22 @@ export function withCommas(n: number): string {
   return n.toLocaleString('en-US')
 }
 
+/**
+ * Plain-language resolution class for a longest-side pixel count, so the UI can
+ * say "4K → 8K" instead of raw dimensions. Buckets are deliberately loose so
+ * off-standard camera/source sizes still land on a familiar label.
+ */
+export function resolutionClass(longest: number): string {
+  if (longest >= 7000) return '8K'
+  if (longest >= 5800) return '6K'
+  if (longest >= 4800) return '5K'
+  if (longest >= 3500) return '4K'
+  if (longest >= 2300) return '2K'
+  if (longest >= 1700) return 'Full HD'
+  if (longest >= 1100) return 'HD'
+  return 'SD'
+}
+
 /** The subset of an item's settings that affects the computed output. */
 export interface RowSettings {
   format: OutputFormat

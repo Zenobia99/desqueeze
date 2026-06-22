@@ -7,7 +7,7 @@ import type {
   PreviewRequest,
   PreviewResult
 } from '@shared/types'
-import { computeTotals, fmtSize } from '@shared/compute'
+import { computeTotals, fmtSize, resolutionClass } from '@shared/compute'
 import { useDesqueeze } from './store'
 import Toolbar from './components/Toolbar'
 import Sidebar from './components/Sidebar'
@@ -104,6 +104,27 @@ export default function App() {
   // AI upscaling applies only when the target exceeds the source AND the
   // Upscaly toggle is on for this photo.
   const canUpscale = !!leadRow && leadRow.upscale && (s.leadId != null && s.effectiveFor(s.leadId).upscale)
+
+  // Plain-language "what will happen to this photo" summary for the sidebar:
+  // resolution classes (4K → 8K) and whether on-device AI is doing the work,
+  // rather than raw pixels/percentages.
+  const outputSummary = useMemo(() => {
+    if (!leadRow) return null
+    const srcLongest = Math.max(leadRow.photo.w, leadRow.photo.h)
+    const outLongest = Math.max(leadRow.outW, leadRow.outH)
+    const srcClass = resolutionClass(srcLongest)
+    const outClass = resolutionClass(outLongest)
+    const x = srcLongest > 0 ? outLongest / srcLongest : 1
+    const factorLabel = Number.isInteger(x) ? `${x}×` : `${x.toFixed(1)}×`
+    const kind: 'ai' | 'enlarge' | 'reduce' | 'same' = leadRow.upscale
+      ? canUpscale
+        ? 'ai'
+        : 'enlarge'
+      : x < 0.995
+        ? 'reduce'
+        : 'same'
+    return { srcClass, outClass, factorLabel, kind }
+  }, [leadRow, canUpscale])
 
   const previewReq = useMemo<PreviewRequest | null>(() => {
     if (!leadRow || s.leadId == null) return null
@@ -418,6 +439,7 @@ export default function App() {
           setMaxFactor={s.setMaxFactor}
           upscaleDisabled={!s.hasSelection}
           onAddPhotos={handleAddPhotos}
+          outputSummary={outputSummary}
         />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>

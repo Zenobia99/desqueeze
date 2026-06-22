@@ -72,7 +72,8 @@ function Sidebar({
   maxFactor,
   setMaxFactor,
   upscaleDisabled,
-  onAddPhotos
+  onAddPhotos,
+  outputSummary
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
@@ -86,6 +87,7 @@ function Sidebar({
   setMaxFactor: (n: number) => void
   upscaleDisabled: boolean
   onAddPhotos?: () => void
+  outputSummary?: OutputSummary | null
 }) {
   return (
     <div
@@ -147,54 +149,132 @@ function Sidebar({
         disabled={upscaleDisabled}
       />
 
-      {/* Pinned to the bottom of the sidebar's empty space: how to add photos. */}
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 18,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 9,
-          textAlign: 'center'
-        }}
-      >
-        <div
+      {/* Pinned to the bottom: plain-language "what will happen" when a photo is
+          selected, otherwise how to add photos. */}
+      <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+        {outputSummary ? <OutputSummaryCard s={outputSummary} /> : <DropHintCard onAddPhotos={onAddPhotos} />}
+      </div>
+    </div>
+  )
+}
+
+export interface OutputSummary {
+  srcClass: string
+  outClass: string
+  factorLabel: string
+  kind: 'ai' | 'enlarge' | 'reduce' | 'same'
+}
+
+// Natural-language explainer of the current settings for the selected photo.
+function OutputSummaryCard({ s }: { s: OutputSummary }) {
+  const flow = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, flexWrap: 'wrap' }}>
+      <Pill>{s.srcClass}</Pill>
+      <span style={{ color: '#9a9aa0', font: '600 13px -apple-system' }}>→</span>
+      <Pill accent>{s.outClass}</Pill>
+    </div>
+  )
+  const copy: Record<OutputSummary['kind'], { tint: string; bd: string; head: string; body: string }> = {
+    ai: {
+      tint: '#eef5ff',
+      bd: '#bcd6ff',
+      head: '✨ AI Upscaling',
+      body: `On-device AI enlarges this ${s.srcClass} image to ${s.outClass} (about ${s.factorLabel}) — sharp detail, nothing sent to the cloud.`
+    },
+    enlarge: {
+      tint: '#fff7ea',
+      bd: '#f0d9a8',
+      head: 'Enlarging (no AI)',
+      body: `This ${s.srcClass} image will be stretched to ${s.outClass}. Turn on AI Upscale above for crisp detail instead of a soft enlargement.`
+    },
+    reduce: {
+      tint: '#f4f4f6',
+      bd: '#dcdce0',
+      head: 'Resizing down',
+      body: `This ${s.srcClass} image will be reduced to ${s.outClass}. AI upscaling isn't needed.`
+    },
+    same: {
+      tint: '#f4f4f6',
+      bd: '#dcdce0',
+      head: 'Exporting at source size',
+      body: `This image will be exported at its original ${s.srcClass} size.`
+    }
+  }
+  const c = copy[s.kind]
+  return (
+    <div
+      style={{
+        width: '100%',
+        padding: '13px 13px 14px',
+        background: c.tint,
+        border: `1px solid ${c.bd}`,
+        borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 9
+      }}
+    >
+      {flow}
+      <div style={{ font: '600 12px -apple-system', color: '#2a2a2f' }}>{c.head}</div>
+      <div style={{ font: '400 11.5px -apple-system', color: '#6a6a70', lineHeight: 1.5 }}>{c.body}</div>
+    </div>
+  )
+}
+
+function Pill({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <span
+      style={{
+        padding: '3px 9px',
+        borderRadius: 6,
+        font: '700 13px -apple-system',
+        background: accent ? '#1366d6' : '#fff',
+        color: accent ? '#fff' : '#2a2a2f',
+        border: accent ? 'none' : '1px solid #d8d8dc'
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+function DropHintCard({ onAddPhotos }: { onAddPhotos?: () => void }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        padding: '16px 12px',
+        border: '1.5px dashed #cfcfd6',
+        borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        textAlign: 'center'
+      }}
+    >
+      <DropGlyph />
+      <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
+        Drag &amp; drop photos or a folder anywhere in the window.
+      </div>
+      {onAddPhotos && (
+        <button
+          onClick={onAddPhotos}
           style={{
-            width: '100%',
-            padding: '16px 12px',
-            border: '1.5px dashed #cfcfd6',
-            borderRadius: 10,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 8
+            marginTop: 2,
+            height: 28,
+            padding: '0 14px',
+            border: 'none',
+            borderRadius: 7,
+            background: '#1366d6',
+            color: '#fff',
+            font: '600 12px -apple-system',
+            cursor: 'pointer'
           }}
         >
-          <DropGlyph />
-          <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
-            Drag &amp; drop photos or a folder anywhere in the window.
-          </div>
-          {onAddPhotos && (
-            <button
-              onClick={onAddPhotos}
-              style={{
-                marginTop: 2,
-                height: 28,
-                padding: '0 14px',
-                border: 'none',
-                borderRadius: 7,
-                background: '#1366d6',
-                color: '#fff',
-                font: '600 12px -apple-system',
-                cursor: 'pointer'
-              }}
-            >
-              Add Photos…
-            </button>
-          )}
-        </div>
-      </div>
+          Add Photos…
+        </button>
+      )}
     </div>
   )
 }
