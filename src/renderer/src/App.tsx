@@ -424,6 +424,21 @@ export default function App() {
         <Sidebar
           activeSource={source}
           onSelectSource={handleSelectSource}
+          output={{
+            preset: s.preset,
+            presetGroups: s.presetGroups,
+            onSelectPreset,
+            targetW: s.targetW,
+            targetH: s.targetH,
+            setTargetW: s.setTargetW,
+            setTargetH: s.setTargetH,
+            aspectLocked: s.aspectLocked,
+            onToggleAspectLock: s.toggleAspectLock,
+            onSwapDims: s.swapDims,
+            sourceLabel: leadRow ? `${withCommas(leadRow.photo.w)} × ${withCommas(leadRow.photo.h)}` : undefined,
+            sourceClass: leadRow ? resolutionClass(Math.max(leadRow.photo.w, leadRow.photo.h)) : undefined,
+            onMatchSource: s.matchSourceSizes
+          }}
           upscale={s.upscale}
           setUpscale={s.setUpscale}
           upModel={s.upModel}
@@ -475,21 +490,8 @@ export default function App() {
         <Inspector
           selCount={s.selCount}
           disabled={!s.hasSelection}
-          preset={s.preset}
-          presetGroups={s.presetGroups}
-          onSelectPreset={onSelectPreset}
           format={s.format}
           setFormat={s.setFormat}
-          targetW={s.targetW}
-          targetH={s.targetH}
-          setTargetW={s.setTargetW}
-          setTargetH={s.setTargetH}
-          sourceLabel={leadRow ? `${withCommas(leadRow.photo.w)} × ${withCommas(leadRow.photo.h)}` : undefined}
-          sourceClass={leadRow ? resolutionClass(Math.max(leadRow.photo.w, leadRow.photo.h)) : undefined}
-          onMatchSource={s.matchSourceSizes}
-          aspectLocked={s.aspectLocked}
-          onToggleAspectLock={s.toggleAspectLock}
-          onSwapDims={s.swapDims}
           fit={s.fit}
           setFit={s.setFit}
           quality={s.quality}

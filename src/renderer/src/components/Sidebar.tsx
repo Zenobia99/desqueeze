@@ -1,8 +1,9 @@
 import React from 'react'
-import type { LibrarySource, UpscaleModel, UpscaleSpeed } from '@shared/types'
+import type { LibrarySource, PresetGroup, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import photosIcon from '../assets/photos-icon.png'
 import { ClockIcon, PhotoMountainIcon } from './Icons'
 import UpscalyPanel from './UpscalyPanel'
+import OutputSize from './OutputSize'
 
 const sectionLabel: React.CSSProperties = {
   font: '600 11px -apple-system',
@@ -63,6 +64,7 @@ function LibRow({
 function Sidebar({
   activeSource,
   onSelectSource,
+  output,
   upscale,
   setUpscale,
   upModel,
@@ -78,6 +80,21 @@ function Sidebar({
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
+  output: {
+    preset: { id: string; name: string; dim: string }
+    presetGroups: PresetGroup[]
+    onSelectPreset: (gi: number, ii: number) => void
+    targetW: number
+    targetH: number
+    setTargetW: (w: number) => void
+    setTargetH: (h: number) => void
+    aspectLocked: boolean
+    onToggleAspectLock: () => void
+    onSwapDims: () => void
+    sourceLabel?: string
+    sourceClass?: string
+    onMatchSource?: () => void
+  }
   upscale: boolean
   setUpscale: (b: boolean) => void
   upModel: UpscaleModel
@@ -95,7 +112,7 @@ function Sidebar({
     <div
       className="dq-scroll"
       style={{
-        width: 236,
+        width: 252,
         flex: 'none',
         display: 'flex',
         flexDirection: 'column',
@@ -138,7 +155,10 @@ function Sidebar({
         />
       </div>
 
-      <div style={{ ...sectionLabel, padding: '20px 8px 8px' }}>AI Upscale</div>
+      <div style={{ ...sectionLabel, padding: '20px 8px 8px' }}>Output Size</div>
+      <OutputSize {...output} disabled={upscaleDisabled} />
+
+      <div style={{ ...sectionLabel, padding: '18px 8px 8px' }}>AI Upscale</div>
       <UpscalyPanel
         upscale={upscale}
         setUpscale={setUpscale}
@@ -148,6 +168,7 @@ function Sidebar({
         setUpSpeed={setUpSpeed}
         maxFactor={maxFactor}
         setMaxFactor={setMaxFactor}
+        upscaling={outputSummary?.kind === 'ai'}
         disabled={upscaleDisabled}
       />
 

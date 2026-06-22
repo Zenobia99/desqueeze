@@ -14,11 +14,17 @@ export interface UpscalyPanelProps {
   setUpSpeed: (s: UpscaleSpeed) => void
   maxFactor: number
   setMaxFactor: (n: number) => void
+  /** Whether the chosen output is larger than the source (AI actually runs). */
+  upscaling: boolean
   /** Greyed out / non-interactive when nothing is selected. */
   disabled?: boolean
 }
 
 function UpscalyPanel(p: UpscalyPanelProps) {
+  // AI is the default; the options only matter when the output is an
+  // enlargement. When it's not, the engine is dormant — say so instead of
+  // showing controls that would do nothing.
+  const active = p.upscaling && p.upscale
   return (
     <div
       style={{
@@ -28,9 +34,9 @@ function UpscalyPanel(p: UpscalyPanelProps) {
     >
       <div
         style={{
-          border: `0.5px solid ${p.upscale ? 'rgba(123,92,255,.40)' : '#dcdce0'}`,
+          border: `0.5px solid ${active ? 'rgba(123,92,255,.40)' : '#dcdce0'}`,
           borderRadius: 10,
-          background: p.upscale ? 'rgba(123,92,255,.06)' : '#ffffff',
+          background: active ? 'rgba(123,92,255,.06)' : '#ffffff',
           overflow: 'hidden'
         }}
       >
@@ -53,35 +59,36 @@ function UpscalyPanel(p: UpscalyPanelProps) {
             <div style={{ font: '600 13.5px -apple-system', color: '#1d1d1f' }}>Upscaly Engine</div>
             <div style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>Runs locally · on-device</div>
           </div>
-          <button
-            onClick={() => p.setUpscale(!p.upscale)}
+        </div>
+
+        {/* "Use AI for enlargements" opt-out (only meaningful when enlarging). */}
+        {p.upscaling ? (
+          <label
             style={{
-              width: 40,
-              height: 24,
-              flex: 'none',
-              border: 'none',
-              borderRadius: 12,
-              cursor: 'pointer',
-              padding: 2,
               display: 'flex',
               alignItems: 'center',
-              transition: 'all .15s',
-              background: p.upscale ? '#34c759' : '#d4d4d9',
-              justifyContent: p.upscale ? 'flex-end' : 'flex-start'
+              gap: 8,
+              padding: '0 12px 11px',
+              cursor: 'pointer',
+              font: '400 12px -apple-system',
+              color: '#3a3a3f'
             }}
           >
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: '#fff',
-                boxShadow: '0 1px 3px rgba(0,0,0,.3)'
-              }}
+            <input
+              type="checkbox"
+              checked={p.upscale}
+              onChange={(e) => p.setUpscale(e.target.checked)}
+              style={{ accentColor: '#7b5cff', width: 15, height: 15, cursor: 'pointer' }}
             />
-          </button>
-        </div>
-        {p.upscale && (
+            Use AI for this enlargement
+          </label>
+        ) : (
+          <div style={{ padding: '0 12px 12px', font: '400 11.5px -apple-system', color: '#9a9aa0', lineHeight: 1.45 }}>
+            Engages automatically when the output is larger than the source.
+          </div>
+        )}
+
+        {active && (
           <div style={{ padding: '2px 12px 14px' }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {MODELS.map((m) => {
