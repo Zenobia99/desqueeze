@@ -300,6 +300,18 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [removeSelected, s.selected.length])
 
+  // Stop the window from navigating to a dropped file when a drop lands outside
+  // the React drop target, and keep the overlay reliable across child elements.
+  useEffect(() => {
+    const prevent = (e: DragEvent): void => e.preventDefault()
+    window.addEventListener('dragover', prevent)
+    window.addEventListener('drop', prevent)
+    return () => {
+      window.removeEventListener('dragover', prevent)
+      window.removeEventListener('drop', prevent)
+    }
+  }, [])
+
   const handleChooseDestination = useCallback(async () => {
     const dir = await window.desqueeze?.chooseDestination()
     if (dir) setDestination(dir)
@@ -371,6 +383,10 @@ export default function App() {
   return (
     <div
       style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff', position: 'relative' }}
+      onDragEnter={(e) => {
+        e.preventDefault()
+        if (!dragging) setDragging(true)
+      }}
       onDragOver={(e) => {
         e.preventDefault()
         if (!dragging) setDragging(true)
