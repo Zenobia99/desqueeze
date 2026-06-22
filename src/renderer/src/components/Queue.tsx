@@ -378,6 +378,18 @@ function PageArrow({
   )
 }
 
+// Empty-state glyph: a photo tile with a downward "drop here" arrow.
+function DropGlyph() {
+  return (
+    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden>
+      <rect x="6" y="10" width="40" height="30" rx="5" stroke="#c8c8cf" strokeWidth="2.5" />
+      <circle cx="17" cy="20" r="3.5" fill="#d4d4da" />
+      <path d="M9 35l11-11 8 8 6-5 9 9" stroke="#d4d4da" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M26 28v15m0 0l-5-5m5 5l5-5" stroke="#1366d6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function Queue({
   rows,
   totalCount,
@@ -387,6 +399,8 @@ function Queue({
   onToggle,
   onSelectAll,
   onRemoveSelected,
+  onAddPhotos,
+  loading,
   emptyMessage
 }: {
   rows: ComputedRow[]
@@ -397,6 +411,8 @@ function Queue({
   onToggle: (id: number) => void
   onSelectAll: () => void
   onRemoveSelected: () => void
+  onAddPhotos?: () => void
+  loading?: boolean
   emptyMessage?: string
 }) {
   const isSel = (id: number) => selected.includes(id)
@@ -517,13 +533,44 @@ function Queue({
           style={{
             flex: 1,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            font: '400 13px -apple-system',
-            color: '#9a9aa0'
+            gap: 14,
+            padding: 32,
+            textAlign: 'center'
           }}
         >
-          {emptyMessage}
+          {loading ? (
+            <div style={{ font: '400 13px -apple-system', color: '#9a9aa0' }}>{emptyMessage}</div>
+          ) : (
+            <>
+              <DropGlyph />
+              <div style={{ font: '600 14px -apple-system', color: '#48484c' }}>{emptyMessage}</div>
+              <div style={{ font: '400 12.5px -apple-system', color: '#9a9aa0', maxWidth: 260, lineHeight: 1.5 }}>
+                Drag &amp; drop photos or a folder here, or browse to add them.
+              </div>
+              {onAddPhotos && (
+                <button
+                  onClick={onAddPhotos}
+                  className="dq-no-drag"
+                  style={{
+                    marginTop: 2,
+                    height: 30,
+                    padding: '0 16px',
+                    border: 'none',
+                    borderRadius: 8,
+                    background: '#1366d6',
+                    color: '#fff',
+                    font: '600 12.5px -apple-system',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Add Photos…
+                </button>
+              )}
+            </>
+          )}
         </div>
       ) : viewMode === 'list' ? (
         <>

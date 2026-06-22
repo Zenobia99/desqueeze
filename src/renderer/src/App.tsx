@@ -447,6 +447,8 @@ export default function App() {
             onToggle={s.toggle}
             onSelectAll={s.selectAll}
             onRemoveSelected={removeSelected}
+            onAddPhotos={handleAddPhotos}
+            loading={isLoading}
             emptyMessage={emptyMessage}
           />
         </div>
