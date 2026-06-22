@@ -73,7 +73,8 @@ function Sidebar({
   setMaxFactor,
   upscaleDisabled,
   onAddPhotos,
-  outputSummary
+  outputSummary,
+  onEnableAi
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
@@ -88,6 +89,7 @@ function Sidebar({
   upscaleDisabled: boolean
   onAddPhotos?: () => void
   outputSummary?: OutputSummary | null
+  onEnableAi?: () => void
 }) {
   return (
     <div
@@ -152,7 +154,11 @@ function Sidebar({
       {/* Pinned to the bottom: plain-language "what will happen" when a photo is
           selected, otherwise how to add photos. */}
       <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-        {outputSummary ? <OutputSummaryCard s={outputSummary} /> : <DropHintCard onAddPhotos={onAddPhotos} />}
+        {outputSummary ? (
+          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+        ) : (
+          <DropHintCard onAddPhotos={onAddPhotos} />
+        )}
       </div>
     </div>
   )
@@ -162,11 +168,13 @@ export interface OutputSummary {
   srcClass: string
   outClass: string
   factorLabel: string
-  kind: 'ai' | 'enlarge' | 'reduce' | 'same'
+  kind: 'ai' | 'reduce' | 'same'
+  /** Whether AI Upscale is currently on for this photo. */
+  aiOn: boolean
 }
 
 // Natural-language explainer of the current settings for the selected photo.
-function OutputSummaryCard({ s }: { s: OutputSummary }) {
+function OutputSummaryCard({ s, onEnableAi }: { s: OutputSummary; onEnableAi?: () => void }) {
   const flow = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, flexWrap: 'wrap' }}>
       <Pill>{s.srcClass}</Pill>
@@ -174,40 +182,30 @@ function OutputSummaryCard({ s }: { s: OutputSummary }) {
       <Pill accent>{s.outClass}</Pill>
     </div>
   )
-  const copy: Record<OutputSummary['kind'], { tint: string; bd: string; head: string; body: string }> = {
-    ai: {
-      tint: '#eef5ff',
-      bd: '#bcd6ff',
-      head: '✨ AI Upscaling',
-      body: `On-device AI enlarges this ${s.srcClass} image to ${s.outClass} (about ${s.factorLabel}) — sharp detail, nothing sent to the cloud.`
-    },
-    enlarge: {
-      tint: '#fff7ea',
-      bd: '#f0d9a8',
-      head: 'Enlarging (no AI)',
-      body: `This ${s.srcClass} image will be stretched to ${s.outClass}. Turn on AI Upscale above for crisp detail instead of a soft enlargement.`
-    },
-    reduce: {
-      tint: '#f4f4f6',
-      bd: '#dcdce0',
-      head: 'Resizing down',
-      body: `This ${s.srcClass} image will be reduced to ${s.outClass}. AI upscaling isn't needed.`
-    },
-    same: {
-      tint: '#f4f4f6',
-      bd: '#dcdce0',
-      head: 'Exporting at source size',
-      body: `This image will be exported at its original ${s.srcClass} size.`
-    }
+  // When the output exceeds the source we always frame it as the AI-upscale
+  // path; if AI is off, the card actively offers to turn it on.
+  let tint = '#f4f4f6'
+  let bd = '#dcdce0'
+  let head = 'Exporting at source size'
+  let body = `This image will be exported at its original ${s.srcClass} size.`
+  if (s.kind === 'ai') {
+    tint = '#eef5ff'
+    bd = '#bcd6ff'
+    head = '✨ AI Upscaling'
+    body = s.aiOn
+      ? `On-device AI enlarges this ${s.srcClass} image to ${s.outClass} (about ${s.factorLabel}) — sharp detail, nothing sent to the cloud.`
+      : `This ${s.srcClass} image can be enlarged to ${s.outClass} (about ${s.factorLabel}) with sharp, on-device AI detail.`
+  } else if (s.kind === 'reduce') {
+    head = 'Resizing down'
+    body = `This ${s.srcClass} image will be reduced to ${s.outClass}. AI upscaling isn't needed.`
   }
-  const c = copy[s.kind]
   return (
     <div
       style={{
         width: '100%',
         padding: '13px 13px 14px',
-        background: c.tint,
-        border: `1px solid ${c.bd}`,
+        background: tint,
+        border: `1px solid ${bd}`,
         borderRadius: 10,
         display: 'flex',
         flexDirection: 'column',
@@ -215,8 +213,24 @@ function OutputSummaryCard({ s }: { s: OutputSummary }) {
       }}
     >
       {flow}
-      <div style={{ font: '600 12px -apple-system', color: '#2a2a2f' }}>{c.head}</div>
-      <div style={{ font: '400 11.5px -apple-system', color: '#6a6a70', lineHeight: 1.5 }}>{c.body}</div>
+      <div style={{ font: '600 12px -apple-system', color: '#2a2a2f' }}>{head}</div>
+      <div style={{ font: '400 11.5px -apple-system', color: '#6a6a70', lineHeight: 1.5 }}>{body}</div>
+      {s.kind === 'ai' && !s.aiOn && onEnableAi && (
+        <button
+          onClick={onEnableAi}
+          style={{
+            height: 30,
+            border: 'none',
+            borderRadius: 7,
+            background: '#1366d6',
+            color: '#fff',
+            font: '600 12px -apple-system',
+            cursor: 'pointer'
+          }}
+        >
+          Enable AI Upscale
+        </button>
+      )}
     </div>
   )
 }

@@ -104,6 +104,52 @@ export function useDesqueeze(photos: Photo[]) {
     [applyEach]
   )
 
+  // Default freshly-imported photos to their own native size, so importing a 4K
+  // file doesn't silently downscale it to the global preset. Won't clobber a
+  // photo that already has settings.
+  const seedSourceSizes = useCallback((items: Photo[]) => {
+    setOverrides((ov) => {
+      const next = { ...ov }
+      for (const p of items) {
+        if (next[p.id] || !p.w || !p.h) continue
+        next[p.id] = {
+          ...DEFAULT_SETTINGS,
+          targetW: p.w,
+          targetH: p.h,
+          presetId: '',
+          presetName: 'Original',
+          presetDim: `${p.w} × ${p.h}`
+        }
+      }
+      return next
+    })
+  }, [])
+
+  // Set each selected photo's output to its OWN source dimensions ("Match").
+  const matchSourceSizes = useCallback(() => {
+    setSelected((sel) => {
+      if (sel.length === 0) return sel
+      setOverrides((ov) => {
+        const next = { ...ov }
+        for (const id of sel) {
+          const p = photos.find((x) => x.id === id)
+          if (!p || !p.w || !p.h) continue
+          const cur = next[id] ?? DEFAULT_SETTINGS
+          next[id] = {
+            ...cur,
+            targetW: p.w,
+            targetH: p.h,
+            presetId: '',
+            presetName: 'Original',
+            presetDim: `${p.w} × ${p.h}`
+          }
+        }
+        return next
+      })
+      return sel
+    })
+  }, [photos])
+
   const applyPreset = useCallback(
     (p: Preset) =>
       applyPatch({
@@ -199,7 +245,9 @@ export function useDesqueeze(photos: Photo[]) {
     toggleFlip,
     toggleAspectLock,
     swapDims,
-    applyPreset
+    applyPreset,
+    seedSourceSizes,
+    matchSourceSizes
   }
 }
 

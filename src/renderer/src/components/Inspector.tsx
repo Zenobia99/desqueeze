@@ -174,6 +174,12 @@ export interface InspectorProps {
   targetH: number
   setTargetW: (w: number) => void
   setTargetH: (h: number) => void
+  /** Selected photo's native dimensions label, e.g. "3,840 × 2,160". */
+  sourceLabel?: string
+  /** Selected photo's resolution class, e.g. "4K". */
+  sourceClass?: string
+  /** Set the output to each selected photo's own source size. */
+  onMatchSource?: () => void
   aspectLocked: boolean
   onToggleAspectLock: () => void
   onSwapDims: () => void
@@ -419,7 +425,34 @@ function Inspector(p: InspectorProps) {
 
       {/* Dimensions */}
       <div style={{ padding: '0 18px 14px' }}>
-        <div style={groupLabel}>Dimensions</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <span style={{ ...groupLabel, marginBottom: 0 }}>Output Size</span>
+          {p.sourceLabel && (
+            <span style={{ font: '400 11px -apple-system', color: '#9a9aa0' }}>
+              Source: {p.sourceLabel}
+              {p.sourceClass ? ` · ${p.sourceClass}` : ''}
+            </span>
+          )}
+        </div>
+        {p.sourceLabel && p.onMatchSource && (
+          <button
+            onClick={p.onMatchSource}
+            title="Set the output to this photo's original dimensions"
+            style={{
+              margin: '7px 0 9px',
+              height: 24,
+              padding: '0 10px',
+              border: '0.5px solid #d8d8dc',
+              borderRadius: 6,
+              background: '#f7f7f9',
+              color: '#1366d6',
+              font: '600 11px -apple-system',
+              cursor: 'pointer'
+            }}
+          >
+            Match source size
+          </button>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <DimField label="W" value={p.targetW} onCommit={p.setTargetW} />
           <button

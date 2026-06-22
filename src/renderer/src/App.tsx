@@ -7,7 +7,7 @@ import type {
   PreviewRequest,
   PreviewResult
 } from '@shared/types'
-import { computeTotals, fmtSize, resolutionClass } from '@shared/compute'
+import { computeTotals, fmtSize, resolutionClass, withCommas } from '@shared/compute'
 import { useDesqueeze } from './store'
 import Toolbar from './components/Toolbar'
 import Sidebar from './components/Sidebar'
@@ -116,14 +116,8 @@ export default function App() {
     const outClass = resolutionClass(outLongest)
     const x = srcLongest > 0 ? outLongest / srcLongest : 1
     const factorLabel = Number.isInteger(x) ? `${x}×` : `${x.toFixed(1)}×`
-    const kind: 'ai' | 'enlarge' | 'reduce' | 'same' = leadRow.upscale
-      ? canUpscale
-        ? 'ai'
-        : 'enlarge'
-      : x < 0.995
-        ? 'reduce'
-        : 'same'
-    return { srcClass, outClass, factorLabel, kind }
+    const kind: 'ai' | 'reduce' | 'same' = leadRow.upscale ? 'ai' : x < 0.995 ? 'reduce' : 'same'
+    return { srcClass, outClass, factorLabel, kind, aiOn: canUpscale }
   }, [leadRow, canUpscale])
 
   const previewReq = useMemo<PreviewRequest | null>(() => {
@@ -265,6 +259,7 @@ export default function App() {
       const fresh = items.filter((p) => !p.path || !seen.has(p.path))
       const withIds: Photo[] = fresh.map((p) => ({ ...p, id: nextId.current++ }))
       if (withIds.length) {
+        s.seedSourceSizes(withIds)
         setImported((prev) => [...withIds, ...prev])
         setSource('last-import')
         loadSource('last-import')
@@ -276,7 +271,7 @@ export default function App() {
           : 'Those photos are already in the queue'
       )
     },
-    [imported, showToast, loadSource]
+    [imported, showToast, loadSource, s]
   )
 
   const handleAddPhotos = useCallback(async () => {
@@ -440,6 +435,7 @@ export default function App() {
           upscaleDisabled={!s.hasSelection}
           onAddPhotos={handleAddPhotos}
           outputSummary={outputSummary}
+          onEnableAi={() => s.setUpscale(true)}
         />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -488,6 +484,9 @@ export default function App() {
           targetH={s.targetH}
           setTargetW={s.setTargetW}
           setTargetH={s.setTargetH}
+          sourceLabel={leadRow ? `${withCommas(leadRow.photo.w)} × ${withCommas(leadRow.photo.h)}` : undefined}
+          sourceClass={leadRow ? resolutionClass(Math.max(leadRow.photo.w, leadRow.photo.h)) : undefined}
+          onMatchSource={s.matchSourceSizes}
           aspectLocked={s.aspectLocked}
           onToggleAspectLock={s.toggleAspectLock}
           onSwapDims={s.swapDims}
