@@ -106,7 +106,9 @@ function PreviewPane({
     <div
       style={{
         flex: 'none',
-        height: 256,
+        // The crop editor needs room to work — grow the pane while cropping.
+        height: cropEditing ? 'min(72vh, 600px)' : 256,
+        transition: 'height .18s ease',
         borderBottom: '0.5px solid #ededf0',
         background: '#f2f2f4',
         backgroundImage:
