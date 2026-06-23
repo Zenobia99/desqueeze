@@ -118,7 +118,7 @@ const DEFAULT_PRESET = PRESET_GROUPS[1].items[2] // Full HD 1920×1080
 
 export const DEFAULT_SETTINGS: ItemSettings = {
   format: 'JPEG',
-  fit: 'Fit',
+  fit: 'Fill',
   targetW: DEFAULT_PRESET.w,
   targetH: DEFAULT_PRESET.h,
   aspectLocked: false,
