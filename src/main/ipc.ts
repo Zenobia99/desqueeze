@@ -1,7 +1,7 @@
 import { ipcMain, dialog, shell, app } from 'electron'
 import { promises as fs } from 'fs'
 import { join, basename, extname } from 'path'
-import { processImage, fileExtension, cropBuffer, orientBuffer, sharp } from './sharp-service'
+import { processImage, extForResolvedFormat, cropBuffer, orientBuffer, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
 import { SPEED_CAP } from '@shared/data'
@@ -177,7 +177,7 @@ export async function runExport(
         maxSizeKb: item.maxSizeKb
       })
 
-      const ext = fileExtension(item.format)
+      const ext = extForResolvedFormat(out.format)
       const outputPath = join(destination, `${item.name}@${item.width}w.${ext}`)
       await fs.writeFile(outputPath, out.buffer)
 
@@ -257,10 +257,10 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
     if (req.sourceView) {
       const base = await previewBase(sourceKey, loadSource)
       const meta = await sharp(base, { failOn: 'none' }).metadata()
-      const display = await sharpResizeJpeg(base, PREVIEW_MAX, 86)
+      const display = await sharpResizeDisplay(base, PREVIEW_MAX, 86)
       return {
         ok: true,
-        dataUrl: `data:image/jpeg;base64,${display.toString('base64')}`,
+        dataUrl: `data:image/${display.mime};base64,${display.data.toString('base64')}`,
         width: meta.width ?? 0,
         height: meta.height ?? 0
       }
@@ -302,31 +302,37 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         maxSizeKb: req.maxSizeKb
       })
       // For display: when cropPreview is set, return a high-resolution image
-      // (capped, JPEG) that the renderer shows at 1:1 and lets the user pan over,
-      // so AI detail is visible; otherwise the whole image downscaled to fit.
-      // Either way TIFF/HEIC are re-encoded to JPEG since <img> can't render them.
+      // (capped) that the renderer shows at 1:1 and lets the user pan over, so AI
+      // detail is visible; otherwise the whole image downscaled to fit. Alpha is
+      // kept (PNG) so transparency shows; TIFF/HEIC are re-encoded for <img>.
       const display = req.cropPreview
-        ? await sharpResizeJpeg(out.buffer, PAN_MAX, 88)
-        : await sharpResizeJpeg(out.buffer, PREVIEW_MAX)
+        ? await sharpResizeDisplay(out.buffer, PAN_MAX, 88)
+        : await sharpResizeDisplay(out.buffer, PREVIEW_MAX)
       return {
         ok: true,
-        dataUrl: `data:image/jpeg;base64,${display.toString('base64')}`,
+        dataUrl: `data:image/${display.mime};base64,${display.data.toString('base64')}`,
         width: out.width,
         height: out.height,
         bytes: out.bytes
       }
     }
 
-    // Fast path: capped box, JPEG.
+    // Fast path: capped box. Keep transparency (render PNG) when the source has
+    // alpha and the chosen format would preserve it, so the preview shows the
+    // checkerboard; otherwise JPEG for speed.
     const longest = Math.max(req.width, req.height)
     const f = longest > PREVIEW_MAX ? PREVIEW_MAX / longest : 1
     const pw = Math.max(1, Math.round(req.width * f))
     const ph = Math.max(1, Math.round(req.height * f))
+    const fastMeta = await sharp(input, { failOn: 'none' }).metadata().catch(() => null)
+    const srcHasAlpha = !!fastMeta?.hasAlpha
+    const keepAlpha =
+      srcHasAlpha && (req.format === 'PNG' || req.format === 'WebP' || req.format === 'Auto')
     const out = await processImage({
       input,
       width: pw,
       height: ph,
-      format: 'JPEG',
+      format: keepAlpha ? 'PNG' : 'JPEG',
       quality: req.quality,
       fit: req.fit,
       rotation: req.rotation,
@@ -334,7 +340,7 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
     })
     return {
       ok: true,
-      dataUrl: `data:image/jpeg;base64,${out.buffer.toString('base64')}`,
+      dataUrl: `data:image/${keepAlpha ? 'png' : 'jpeg'};base64,${out.buffer.toString('base64')}`,
       width: out.width,
       height: out.height,
       bytes: out.bytes
@@ -350,6 +356,24 @@ async function sharpResizeJpeg(buf: Buffer, max: number, quality = 80): Promise<
     .resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality })
     .toBuffer()
+}
+
+/**
+ * Downscale for on-screen display, keeping transparency (PNG) when present so
+ * the preview shows the checkerboard rather than a flattened fill; otherwise
+ * JPEG. Returns the data plus its mime subtype.
+ */
+async function sharpResizeDisplay(
+  buf: Buffer,
+  max: number,
+  quality = 80
+): Promise<{ data: Buffer; mime: 'png' | 'jpeg' }> {
+  const meta = await sharp(buf, { failOn: 'none' }).metadata().catch(() => null)
+  const hasAlpha = !!meta?.hasAlpha
+  const p = sharp(buf, { failOn: 'none' }).resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
+  return hasAlpha
+    ? { data: await p.png().toBuffer(), mime: 'png' }
+    : { data: await p.jpeg({ quality }).toBuffer(), mime: 'jpeg' }
 }
 
 // Map a sidebar Library source onto a PhotoKit query kind.

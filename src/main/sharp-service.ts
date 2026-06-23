@@ -78,21 +78,32 @@ function sharpFit(mode: ResizeMode): keyof sharp.FitEnum {
   }
 }
 
-// Letterbox bars for Fit mode (opaque black, all formats).
-const LETTERBOX_BG = { r: 0, g: 0, b: 0, alpha: 1 }
+// Backgrounds used for padding/flattening.
+const LETTERBOX_BG = { r: 0, g: 0, b: 0, alpha: 1 } // Fit bars for opaque sources
+const WHITE_BG = { r: 255, g: 255, b: 255, alpha: 1 } // flatten transparency here
+const TRANSPARENT_BG = { r: 0, g: 0, b: 0, alpha: 0 } // keep alpha (PNG/WebP)
 
 /**
  * Resize + convert + re-encode an image in the main process.
  * This is the real engine — format, dimensions, and quality are all honoured.
  */
 export async function processImage(opts: ProcessOptions): Promise<ProcessOutput> {
+  // Transparency handling: keep alpha for formats that support it (and let
+  // "Auto" pick PNG for transparent sources); otherwise flatten to white rather
+  // than black. Opaque sources keep the black letterbox bars in Fit mode.
+  const srcMeta = await sharp(opts.input, { failOn: 'none' }).metadata().catch(() => null)
+  const srcHasAlpha = !!srcMeta?.hasAlpha
+  const fmt = resolveFormat(opts.format, srcHasAlpha)
+  const keepAlpha = fmt === 'png' || fmt === 'webp'
+  const padBg = keepAlpha ? TRANSPARENT_BG : srcHasAlpha ? WHITE_BG : LETTERBOX_BG
+
   // Pass 1: auto-orient from EXIF, then resize to the target box.
   const needsManip = !!opts.rotation || !!opts.flipH
   const resized = sharp(opts.input, { failOn: 'none' }).rotate().resize({
     width: opts.width,
     height: opts.height,
     fit: sharpFit(opts.fit),
-    background: LETTERBOX_BG,
+    background: padBg,
     withoutEnlargement: false
   })
 
@@ -111,8 +122,10 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
     pipeline = resized
   }
 
+  // Dropping alpha for a no-alpha format → flatten transparent pixels to white.
+  if (!keepAlpha && srcHasAlpha) pipeline = pipeline.flatten({ background: WHITE_BG })
+
   const q = Math.max(1, Math.min(100, Math.round(opts.quality)))
-  const fmt = resolveFormat(opts.format)
 
   // Encode the (cloned) pipeline at a given quality. Cloning lets us try several
   // qualities when hitting a target file size.
@@ -173,8 +186,15 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
   }
 }
 
-/** Map our OutputFormat (incl. "Auto") onto a concrete sharp encoder. */
-function resolveFormat(format: OutputFormat): 'jpeg' | 'png' | 'webp' | 'tiff' | 'heif' {
+/**
+ * Map our OutputFormat (incl. "Auto") onto a concrete sharp encoder. "Auto"
+ * preserves transparency by choosing PNG for sources with an alpha channel,
+ * and JPEG otherwise.
+ */
+function resolveFormat(
+  format: OutputFormat,
+  srcHasAlpha = false
+): 'jpeg' | 'png' | 'webp' | 'tiff' | 'heif' {
   switch (format) {
     case 'PNG':
       return 'png'
@@ -184,10 +204,27 @@ function resolveFormat(format: OutputFormat): 'jpeg' | 'png' | 'webp' | 'tiff' |
       return 'tiff'
     case 'HEIC':
       return 'heif'
-    case 'JPEG':
     case 'Auto':
+      return srcHasAlpha ? 'png' : 'jpeg'
+    case 'JPEG':
     default:
       return 'jpeg'
+  }
+}
+
+/** Extension for an actual sharp output format string (post-resolution). */
+export function extForResolvedFormat(sharpFormat: string): string {
+  switch (sharpFormat) {
+    case 'png':
+      return 'png'
+    case 'webp':
+      return 'webp'
+    case 'tiff':
+      return 'tif'
+    case 'heif':
+      return 'heic'
+    default:
+      return 'jpg'
   }
 }
 
