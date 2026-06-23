@@ -1,7 +1,7 @@
 import { ipcMain, dialog, shell, app } from 'electron'
 import { promises as fs } from 'fs'
 import { join, basename, extname } from 'path'
-import { processImage, fileExtension, cropBuffer, sharp } from './sharp-service'
+import { processImage, fileExtension, cropBuffer, orientBuffer, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
 import { SPEED_CAP } from '@shared/data'
@@ -76,10 +76,14 @@ function mapFormat(f: string | undefined): OutputFormat {
 async function importFile(path: string): Promise<ImportedPhoto | null> {
   try {
     const meta = await sharp(path, { failOn: 'none' }).metadata()
-    const w = meta.width ?? 0
-    const h = meta.height ?? 0
+    let w = meta.width ?? 0
+    let h = meta.height ?? 0
     if (!w || !h) return null
+    // EXIF orientation 5–8 rotate the image 90/270°, so the displayed
+    // dimensions are the swap of the stored pixel dimensions.
+    if ((meta.orientation ?? 1) >= 5) [w, h] = [h, w]
     const thumb = await sharp(path, { failOn: 'none' })
+      .rotate()
       .resize({ width: 176, height: 120, fit: 'cover' })
       .png()
       .toBuffer()
@@ -125,7 +129,10 @@ export async function runExport(
       let input = fromLibrary
         ? await photosLibrary.getImageBuffer(item.photosId as string)
         : await fs.readFile(item.sourcePath as string)
-      // Crop the source first, so the kept region drives upscaling and resize.
+      // Bake EXIF orientation first so crop coords and the resize box match how
+      // the photo actually displays, then crop so the kept region drives
+      // upscaling and resize.
+      input = await orientBuffer(input)
       input = await cropBuffer(input, item.crop)
       let upscaled = false
 
@@ -198,6 +205,7 @@ async function previewBase(key: string, load: () => Promise<Buffer>): Promise<Bu
     cached = (async () => {
       const raw = await load()
       return sharp(raw, { failOn: 'none' })
+        .rotate() // bake EXIF orientation so the cached base displays upright
         .resize({ width: PREVIEW_BASE_CAP, height: PREVIEW_BASE_CAP, fit: 'inside', withoutEnlargement: true })
         .png()
         .toBuffer()
@@ -242,10 +250,13 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
       }
     }
 
-    // The plain fast preview resizes from a cached, downscaled base; the heavy
-    // paths (real-resolution estimate, AI upscale) need the full-res original.
+    // The plain fast preview resizes from a cached, downscaled base (already
+    // EXIF-oriented); the heavy paths (real-resolution estimate, AI upscale) use
+    // the full-res original, so bake orientation into it here.
     let input =
-      req.fullEstimate || req.needsUpscale ? await loadSource() : await previewBase(sourceKey, loadSource)
+      req.fullEstimate || req.needsUpscale
+        ? await orientBuffer(await loadSource())
+        : await previewBase(sourceKey, loadSource)
     // Crop the source first so the preview reflects the kept region.
     input = await cropBuffer(input, req.crop)
 

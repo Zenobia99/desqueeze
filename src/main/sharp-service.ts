@@ -2,6 +2,21 @@ import sharp from 'sharp'
 import type { CropRect, OutputFormat, ResizeMode } from '@shared/types'
 
 /**
+ * Bake EXIF orientation into the pixels (so width/height and all downstream
+ * crops/resizes match how the image actually displays), returning a new buffer.
+ * No-op for images that are already upright (orientation 1 / absent).
+ */
+export async function orientBuffer(input: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(input, { failOn: 'none' }).metadata()
+    if (!meta.orientation || meta.orientation === 1) return input
+    return await sharp(input, { failOn: 'none' }).rotate().toBuffer()
+  } catch {
+    return input
+  }
+}
+
+/**
  * Crop a source buffer to a normalized [0,1] region, returning a new buffer.
  * No-op (returns the input) when the rect is missing or effectively full-frame.
  * Applied before resize/upscale so the engine works on just the kept region.
@@ -71,9 +86,9 @@ const LETTERBOX_BG = { r: 0, g: 0, b: 0, alpha: 1 }
  * This is the real engine — format, dimensions, and quality are all honoured.
  */
 export async function processImage(opts: ProcessOptions): Promise<ProcessOutput> {
-  // Pass 1: resize to the target box.
+  // Pass 1: auto-orient from EXIF, then resize to the target box.
   const needsManip = !!opts.rotation || !!opts.flipH
-  const resized = sharp(opts.input, { failOn: 'none' }).resize({
+  const resized = sharp(opts.input, { failOn: 'none' }).rotate().resize({
     width: opts.width,
     height: opts.height,
     fit: sharpFit(opts.fit),
