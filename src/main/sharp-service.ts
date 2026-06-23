@@ -62,26 +62,23 @@ export interface ProcessOutput {
   bytes: number
 }
 
-// Map the design's resize modes onto sharp's fit strategies. Every mode fills
-// the exact target box, so the three are visually distinct:
-//  Fill    → crop to fill the box           (cover)
-//  Fit     → letterbox the whole image      (contain, padded to W×H)
-//  Stretch → distort to exact W×H           (fill)
+// Map the design's resize modes onto sharp's fit strategies:
+//  Fill    → crop to fill the box           (cover, output = box)
+//  Fit     → scale to fit within the box     (inside, no padding, output ≤ box)
+//  Stretch → distort to exact W×H            (fill, output = box)
 function sharpFit(mode: ResizeMode): keyof sharp.FitEnum {
   switch (mode) {
     case 'Fill':
       return 'cover'
     case 'Fit':
-      return 'contain'
+      return 'inside'
     case 'Stretch':
       return 'fill'
   }
 }
 
-// Backgrounds used for padding/flattening.
-const LETTERBOX_BG = { r: 0, g: 0, b: 0, alpha: 1 } // Fit bars for opaque sources
-const WHITE_BG = { r: 255, g: 255, b: 255, alpha: 1 } // flatten transparency here
-const TRANSPARENT_BG = { r: 0, g: 0, b: 0, alpha: 0 } // keep alpha (PNG/WebP)
+// Transparent pixels are flattened onto white (when the target can't keep alpha).
+const WHITE_BG = { r: 255, g: 255, b: 255, alpha: 1 }
 
 /**
  * Resize + convert + re-encode an image in the main process.
@@ -90,12 +87,11 @@ const TRANSPARENT_BG = { r: 0, g: 0, b: 0, alpha: 0 } // keep alpha (PNG/WebP)
 export async function processImage(opts: ProcessOptions): Promise<ProcessOutput> {
   // Transparency handling: keep alpha for formats that support it (and let
   // "Auto" pick PNG for transparent sources); otherwise flatten to white rather
-  // than black. Opaque sources keep the black letterbox bars in Fit mode.
+  // than black. (No resize mode pads anymore, so there are no letterbox bars.)
   const srcMeta = await sharp(opts.input, { failOn: 'none' }).metadata().catch(() => null)
   const srcHasAlpha = !!srcMeta?.hasAlpha
   const fmt = resolveFormat(opts.format, srcHasAlpha)
   const keepAlpha = fmt === 'png' || fmt === 'webp'
-  const padBg = keepAlpha ? TRANSPARENT_BG : srcHasAlpha ? WHITE_BG : LETTERBOX_BG
 
   // Pass 1: auto-orient from EXIF, then resize to the target box.
   const needsManip = !!opts.rotation || !!opts.flipH
@@ -103,7 +99,6 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
     width: opts.width,
     height: opts.height,
     fit: sharpFit(opts.fit),
-    background: padBg,
     withoutEnlargement: false
   })
 

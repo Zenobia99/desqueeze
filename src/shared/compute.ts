@@ -149,15 +149,14 @@ export function computeRow(photo: Photo, s: RowSettings, hasOverride: boolean): 
   const rW = W / srcW
   const rH = H / srcH
 
-  // All three modes now produce the exact target box on disk:
-  //  Fit     → letterbox (whole image + bars),  ratio = min (content scale)
-  //  Fill    → crop to fill,                     ratio = max
-  //  Stretch → distort to fill,                  ratio = max
-  // so the output canvas is always W×H; only `ratio` (the content scale used for
-  // the scale%/upscale flag) differs.
-  const outW = W
-  const outH = H
+  // Output dimensions per resize mode:
+  //  Fit     → scale to fit WITHIN the box, no padding (output ≤ box, keeps
+  //            aspect) — the box is a bounding box, not a forced canvas.
+  //  Fill    → crop to fill the box exactly  (output = box).
+  //  Stretch → distort to fill the box       (output = box).
   const ratio = fit === 'Fit' ? Math.min(rW, rH) : Math.max(rW, rH)
+  const outW = fit === 'Fit' ? Math.max(1, Math.round(srcW * ratio)) : W
+  const outH = fit === 'Fit' ? Math.max(1, Math.round(srcH * ratio)) : H
 
   const upscale = ratio > 1
   const scale = ratio * 100
