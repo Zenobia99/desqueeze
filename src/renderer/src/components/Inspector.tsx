@@ -287,7 +287,7 @@ function Inspector(p: InspectorProps) {
                 color: p.cropEditing ? '#fff' : p.cropActive ? '#1473e6' : '#3a3a3f'
               }}
             >
-              {p.cropEditing ? 'Cropping…' : p.cropActive ? 'Cropped' : 'Crop'}
+              {p.cropEditing && p.cropActive ? 'Cropping…' : p.cropActive ? 'Cropped' : 'Crop'}
             </span>
           </button>
         </div>
