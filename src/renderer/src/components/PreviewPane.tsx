@@ -105,10 +105,11 @@ function PreviewPane({
   return (
     <div
       style={{
-        flex: 'none',
-        // The crop editor needs room to work — grow the pane while cropping.
-        height: cropEditing ? 'min(72vh, 600px)' : 256,
-        transition: 'height .18s ease',
+        // While cropping, fill the whole column (the queue is hidden) so the
+        // editor gets maximum room; otherwise it's a fixed preview strip.
+        flex: cropEditing ? 1 : 'none',
+        height: cropEditing ? 'auto' : 256,
+        minHeight: 0,
         borderBottom: '0.5px solid #ededf0',
         background: '#f2f2f4',
         backgroundImage:

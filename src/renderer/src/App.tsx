@@ -568,19 +568,21 @@ export default function App() {
               onCropDone={onCropDone}
             />
           )}
-          <Queue
-            rows={visibleRows}
-            totalCount={s.photos.length}
-            selected={s.selected}
-            selCount={s.selCount}
-            viewMode={s.viewMode}
-            onToggle={s.toggle}
-            onSelectAll={s.selectAll}
-            onRemoveSelected={removeSelected}
-            onAddPhotos={handleAddPhotos}
-            loading={isLoading}
-            emptyMessage={emptyMessage}
-          />
+          {!cropEditing && (
+            <Queue
+              rows={visibleRows}
+              totalCount={s.photos.length}
+              selected={s.selected}
+              selCount={s.selCount}
+              viewMode={s.viewMode}
+              onToggle={s.toggle}
+              onSelectAll={s.selectAll}
+              onRemoveSelected={removeSelected}
+              onAddPhotos={handleAddPhotos}
+              loading={isLoading}
+              emptyMessage={emptyMessage}
+            />
+          )}
         </div>
 
         <Inspector

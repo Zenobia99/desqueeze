@@ -112,7 +112,7 @@ export default function CropStage({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
-      style={{ position: 'absolute', inset: 0, touchAction: 'none', userSelect: 'none' }}
+      style={{ position: 'absolute', inset: '20px 28px 52px', touchAction: 'none', userSelect: 'none' }}
     >
       <img
         src={src}
