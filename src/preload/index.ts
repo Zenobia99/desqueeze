@@ -20,6 +20,9 @@ const api = {
   /** Import dropped files/folders by absolute path. */
   importPaths: (paths: string[]): Promise<ImportedPhoto[]> =>
     ipcRenderer.invoke('photos:import', paths),
+  /** Re-read EXIF-oriented dimensions for queued, file-backed photos. */
+  measurePhotos: (items: { id: number; sourcePath: string }[]): Promise<{ id: number; w: number; h: number }[]> =>
+    ipcRenderer.invoke('photos:measure', items),
   /** Resolve a dropped File's absolute path (Electron webUtils). */
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   chooseDestination: (): Promise<string | null> =>

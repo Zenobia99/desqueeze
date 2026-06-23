@@ -71,6 +71,49 @@ export default function App() {
   }, [cache, source, imported])
 
   const s = useDesqueeze(sourcePhotos)
+
+  // Self-healing guard: re-read EXIF-oriented dimensions for any file-backed
+  // photo in the queue (measured once per id), correcting items that were added
+  // before orientation was honored so existing queues fix themselves on load.
+  const measured = useRef<Set<number>>(new Set())
+  useEffect(() => {
+    if (!window.desqueeze) return
+    const targets = sourcePhotos.filter((p) => p.path && !measured.current.has(p.id))
+    if (targets.length === 0) return
+    let cancelled = false
+    ;(async () => {
+      const res = await window.desqueeze!.measurePhotos(
+        targets.map((p) => ({ id: p.id, sourcePath: p.path as string }))
+      )
+      if (cancelled) return
+      targets.forEach((p) => measured.current.add(p.id))
+      const fixes = new Map<number, { w: number; h: number }>()
+      for (const r of res) {
+        const p = targets.find((t) => t.id === r.id)
+        if (p && (p.w !== r.w || p.h !== r.h)) fixes.set(r.id, { w: r.w, h: r.h })
+      }
+      if (fixes.size === 0) return
+      const patch = (arr: Photo[]): Photo[] =>
+        arr.some((p) => fixes.has(p.id))
+          ? arr.map((p) => (fixes.has(p.id) ? { ...p, ...fixes.get(p.id)! } : p))
+          : arr
+      setImported((prev) => patch(prev))
+      setCache((prev) => {
+        let changed = false
+        const next: SourceCache = {}
+        for (const k of Object.keys(prev) as LibrarySource[]) {
+          const a = patch(prev[k] as Photo[])
+          if (a !== prev[k]) changed = true
+          next[k] = a
+        }
+        return changed ? next : prev
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [sourcePhotos])
+
   const [search, setSearch] = useState('')
   const [destination, setDestination] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)

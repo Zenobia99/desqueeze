@@ -72,6 +72,22 @@ function mapFormat(f: string | undefined): OutputFormat {
   }
 }
 
+/** EXIF-oriented (display) dimensions of an image file, or null if unreadable. */
+async function orientedSize(path: string): Promise<{ w: number; h: number } | null> {
+  try {
+    const meta = await sharp(path, { failOn: 'none' }).metadata()
+    let w = meta.width ?? 0
+    let h = meta.height ?? 0
+    if (!w || !h) return null
+    // EXIF orientation 5–8 rotate the image 90/270°, so the displayed
+    // dimensions are the swap of the stored pixel dimensions.
+    if ((meta.orientation ?? 1) >= 5) [w, h] = [h, w]
+    return { w, h }
+  } catch {
+    return null
+  }
+}
+
 /** Read real metadata + a small thumbnail for a file the user picked. */
 async function importFile(path: string): Promise<ImportedPhoto | null> {
   try {
@@ -386,6 +402,21 @@ export function registerIpc(): void {
     const imported = await Promise.all(files.map(importFile))
     return imported.filter((p): p is ImportedPhoto => p !== null)
   })
+
+  // Self-heal: re-read EXIF-oriented dimensions for queued, file-backed photos
+  // (corrects items captured before orientation was honored).
+  ipcMain.handle(
+    'photos:measure',
+    async (_e, items: { id: number; sourcePath: string }[]): Promise<{ id: number; w: number; h: number }[]> => {
+      const out: { id: number; w: number; h: number }[] = []
+      for (const it of items) {
+        if (!it.sourcePath) continue
+        const size = await orientedSize(it.sourcePath)
+        if (size) out.push({ id: it.id, w: size.w, h: size.h })
+      }
+      return out
+    }
+  )
 
   ipcMain.handle('dialog:chooseDestination', async (): Promise<string | null> => {
     const res = await dialog.showOpenDialog({
