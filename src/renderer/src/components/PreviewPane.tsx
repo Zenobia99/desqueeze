@@ -1,4 +1,6 @@
 import React from 'react'
+import type { CropRect } from '@shared/types'
+import CropStage from './CropStage'
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n))
 const CENTER = { x: 0.5, y: 0.5 }
@@ -17,7 +19,15 @@ function PreviewPane({
   hasComparison,
   onToggleCompare,
   zoom,
-  onToggleZoom
+  onToggleZoom,
+  cropEditing,
+  cropSrc,
+  cropNatW,
+  cropNatH,
+  currentCrop,
+  onCropCommit,
+  onCropReset,
+  onCropDone
 }: {
   name: string
   dataUrl: string | null
@@ -38,6 +48,17 @@ function PreviewPane({
   /** 1:1 zoom (pannable detail) vs whole-image fit. */
   zoom: boolean
   onToggleZoom: () => void
+  /** Crop editor is open. */
+  cropEditing: boolean
+  /** Raw source image (for the crop editor) + its native dimensions. */
+  cropSrc: string | null
+  cropNatW: number
+  cropNatH: number
+  /** Current crop region (normalized) for the lead photo, if any. */
+  currentCrop?: CropRect
+  onCropCommit: (r: CropRect) => void
+  onCropReset: () => void
+  onCropDone: () => void
 }) {
   const imgRef = React.useRef<HTMLImageElement>(null)
   // Pan lives here, not in the parent: during a drag we mutate the image's
@@ -100,6 +121,71 @@ function PreviewPane({
         overflow: 'hidden'
       }}
     >
+      {cropEditing ? (
+        <>
+          {cropSrc ? (
+            <CropStage
+              src={cropSrc}
+              natW={cropNatW}
+              natH={cropNatH}
+              crop={currentCrop}
+              onCommit={onCropCommit}
+            />
+          ) : (
+            <span style={{ font: '400 13px -apple-system', color: '#9a9aa0' }}>Loading source…</span>
+          )}
+          {/* Crop toolbar */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              background: 'linear-gradient(transparent,rgba(0,0,0,.45))'
+            }}
+          >
+            <span style={{ font: '600 11.5px -apple-system', color: '#fff' }}>
+              Drag the handles to crop
+            </span>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={onCropReset}
+              style={{
+                height: 26,
+                padding: '0 11px',
+                border: 'none',
+                borderRadius: 7,
+                background: 'rgba(255,255,255,.22)',
+                color: '#fff',
+                font: '600 11.5px -apple-system',
+                cursor: 'pointer'
+              }}
+            >
+              Reset
+            </button>
+            <button
+              onClick={onCropDone}
+              style={{
+                height: 26,
+                padding: '0 13px',
+                border: 'none',
+                borderRadius: 7,
+                background: '#1366d6',
+                color: '#fff',
+                font: '600 11.5px -apple-system',
+                cursor: 'pointer'
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </>
+      ) : (
+      <>
       {dataUrl ? (
         <img
           ref={imgRef}
@@ -278,6 +364,8 @@ function PreviewPane({
           </svg>
           {upscaleLoading ? 'Upscaling…' : 'Preview Upscaly'}
         </button>
+      )}
+      </>
       )}
     </div>
   )

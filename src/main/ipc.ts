@@ -1,7 +1,7 @@
 import { ipcMain, dialog, shell, app } from 'electron'
 import { promises as fs } from 'fs'
 import { join, basename, extname } from 'path'
-import { processImage, fileExtension, sharp } from './sharp-service'
+import { processImage, fileExtension, cropBuffer, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
 import { SPEED_CAP } from '@shared/data'
@@ -125,6 +125,8 @@ export async function runExport(
       let input = fromLibrary
         ? await photosLibrary.getImageBuffer(item.photosId as string)
         : await fs.readFile(item.sourcePath as string)
+      // Crop the source first, so the kept region drives upscaling and resize.
+      input = await cropBuffer(input, item.crop)
       let upscaled = false
 
       // Route through the Upscaly engine when the target exceeds source.
@@ -226,10 +228,26 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
     const loadSource = (): Promise<Buffer> =>
       req.photosId ? photosLibrary.getImageBuffer(req.photosId) : fs.readFile(req.sourcePath as string)
 
+    // Crop editor: return the raw (un-cropped) source scaled to fit, plus its
+    // native dimensions, so the renderer can draw the crop region over it.
+    if (req.sourceView) {
+      const base = await previewBase(sourceKey, loadSource)
+      const meta = await sharp(base, { failOn: 'none' }).metadata()
+      const display = await sharpResizeJpeg(base, PREVIEW_MAX, 86)
+      return {
+        ok: true,
+        dataUrl: `data:image/jpeg;base64,${display.toString('base64')}`,
+        width: meta.width ?? 0,
+        height: meta.height ?? 0
+      }
+    }
+
     // The plain fast preview resizes from a cached, downscaled base; the heavy
     // paths (real-resolution estimate, AI upscale) need the full-res original.
     let input =
       req.fullEstimate || req.needsUpscale ? await loadSource() : await previewBase(sourceKey, loadSource)
+    // Crop the source first so the preview reflects the kept region.
+    input = await cropBuffer(input, req.crop)
 
     if (req.needsUpscale && upscaly.available()) {
       const up = await upscaly.upscale({

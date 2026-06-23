@@ -1,7 +1,7 @@
 import React from 'react'
 import type { OutputFormat, ResizeMode } from '@shared/types'
 import {
-  ChevronDown,
+  CropIcon,
   RotateCCW,
   RotateCW,
   FlipIcon,
@@ -116,6 +116,11 @@ export interface InspectorProps {
   onRotateCW: () => void
   onRotateCCW: () => void
   onToggleFlip: () => void
+  /** Whether a crop region is currently set on the selection. */
+  cropActive: boolean
+  /** Whether the crop editor is open. */
+  cropEditing: boolean
+  onCropEdit: () => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -256,21 +261,34 @@ function Inspector(p: InspectorProps) {
             <FlipIcon color={p.flipH ? '#1473e6' : '#3a3a3f'} />
           </CropBtn>
           <button
+            onClick={p.onCropEdit}
+            title="Crop: drag a region on the preview"
             style={{
               flex: 1,
               height: 38,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
-              border: '0.5px solid #d8d8dc',
+              gap: 6,
+              border: `0.5px solid ${p.cropEditing || p.cropActive ? '#1473e6' : '#d8d8dc'}`,
               borderRadius: 8,
-              background: '#ffffff',
+              background: p.cropEditing
+                ? '#1473e6'
+                : p.cropActive
+                  ? 'rgba(20,115,230,.08)'
+                  : '#ffffff',
               cursor: 'pointer'
             }}
           >
-            <span style={{ font: '500 12px -apple-system', color: '#3a3a3f' }}>16:9</span>
-            <ChevronDown />
+            <CropIcon color={p.cropEditing ? '#fff' : p.cropActive ? '#1473e6' : '#3a3a3f'} />
+            <span
+              style={{
+                font: '600 12px -apple-system',
+                color: p.cropEditing ? '#fff' : p.cropActive ? '#1473e6' : '#3a3a3f'
+              }}
+            >
+              {p.cropEditing ? 'Cropping…' : p.cropActive ? 'Cropped' : 'Crop'}
+            </span>
           </button>
         </div>
       </div>

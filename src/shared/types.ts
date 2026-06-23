@@ -48,8 +48,21 @@ export interface SourceLoadResult {
 /** Which Library source is active in the sidebar. */
 export type LibrarySource = 'recents' | 'favourites' | 'last-import' | 'albums'
 
+/**
+ * A crop region in normalized [0,1] coordinates relative to the (un-rotated)
+ * source image. Undefined / full-frame means no crop. Applied before resize.
+ */
+export interface CropRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 /** The full configurable output settings for a photo (or the batch default). */
 export interface ItemSettings {
+  /** Optional source crop, applied before resize/upscale. */
+  crop?: CropRect
   format: OutputFormat
   fit: ResizeMode
   /** Target box dimensions. */
@@ -109,6 +122,8 @@ export interface ExportItemRequest {
   rotation?: number
   /** Mirror horizontally. */
   flipH?: boolean
+  /** Optional source crop (normalized), applied before resize/upscale. */
+  crop?: CropRect
   /** Whether the target exceeds the source and needs the Upscaly engine. */
   needsUpscale: boolean
   upModel: UpscaleModel
@@ -163,6 +178,8 @@ export interface PreviewRequest {
   fit: ResizeMode
   rotation?: number
   flipH?: boolean
+  /** Optional source crop (normalized), applied before resize/upscale. */
+  crop?: CropRect
   needsUpscale: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
@@ -173,6 +190,11 @@ export interface PreviewRequest {
   maxSizeKb?: number
   /** Render at the real export box + format to report exact output bytes. */
   fullEstimate?: boolean
+  /**
+   * Return the raw source image (capped, no crop/resize/rotation) plus its
+   * native dimensions, for the interactive crop editor to draw a region on.
+   */
+  sourceView?: boolean
   /**
    * Return a native-resolution center crop of the output (instead of the whole
    * image downscaled to fit), so fine detail — e.g. AI upscaling — is visible

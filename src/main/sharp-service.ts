@@ -1,5 +1,26 @@
 import sharp from 'sharp'
-import type { OutputFormat, ResizeMode } from '@shared/types'
+import type { CropRect, OutputFormat, ResizeMode } from '@shared/types'
+
+/**
+ * Crop a source buffer to a normalized [0,1] region, returning a new buffer.
+ * No-op (returns the input) when the rect is missing or effectively full-frame.
+ * Applied before resize/upscale so the engine works on just the kept region.
+ */
+export async function cropBuffer(input: Buffer, crop: CropRect | undefined): Promise<Buffer> {
+  if (!crop) return input
+  const full = crop.x <= 0.0001 && crop.y <= 0.0001 && crop.w >= 0.9999 && crop.h >= 0.9999
+  if (full) return input
+  const img = sharp(input, { failOn: 'none' })
+  const meta = await img.metadata()
+  const W = meta.width ?? 0
+  const H = meta.height ?? 0
+  if (!W || !H) return input
+  const left = Math.max(0, Math.min(W - 1, Math.round(crop.x * W)))
+  const top = Math.max(0, Math.min(H - 1, Math.round(crop.y * H)))
+  const width = Math.max(1, Math.min(W - left, Math.round(crop.w * W)))
+  const height = Math.max(1, Math.min(H - top, Math.round(crop.h * H)))
+  return img.extract({ left, top, width, height }).toBuffer()
+}
 
 export interface ProcessOptions {
   /** Source image as a path or in-memory buffer. */

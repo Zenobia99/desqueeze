@@ -70,6 +70,8 @@ export function useDesqueeze(photos: Photo[]) {
     [applyEach]
   )
   const toggleFlip = useCallback(() => applyEach((c) => ({ flipH: !c.flipH })), [applyEach])
+  // Crop (normalized) applies to the whole selection; clear with undefined.
+  const setCrop = useCallback((crop: ItemSettings['crop']) => applyPatch({ crop }), [applyPatch])
   const toggleAspectLock = useCallback(
     () => applyEach((c) => ({ aspectLocked: !c.aspectLocked })),
     [applyEach]
@@ -176,7 +178,8 @@ export function useDesqueeze(photos: Photo[]) {
             quality: e.quality,
             maxSizeKb: e.maxSizeKb,
             rotation: e.rotation,
-            flipH: e.flipH
+            flipH: e.flipH,
+            crop: e.crop
           },
           p.id in overrides
         )
@@ -220,6 +223,7 @@ export function useDesqueeze(photos: Photo[]) {
     maxSizeKb: repr.maxSizeKb,
     rotation: repr.rotation,
     flipH: repr.flipH,
+    crop: repr.crop,
     aspectLocked: repr.aspectLocked,
     preset,
     targetW: repr.targetW,
@@ -243,6 +247,7 @@ export function useDesqueeze(photos: Photo[]) {
     rotateCW,
     rotateCCW,
     toggleFlip,
+    setCrop,
     toggleAspectLock,
     swapDims,
     applyPreset,

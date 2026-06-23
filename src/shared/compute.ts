@@ -1,4 +1,4 @@
-import type { OutputFormat, Photo, ResizeMode } from './types'
+import type { CropRect, OutputFormat, Photo, ResizeMode } from './types'
 
 // Per-format byte weight (KB per output pixel). Ported verbatim from the
 // prototype so totals/est. sizes stay consistent.
@@ -107,6 +107,8 @@ export interface RowSettings {
   /** 0 | 90 | 180 | 270 (clockwise). */
   rotation?: number
   flipH?: boolean
+  /** Optional source crop (normalized); shrinks the effective source. */
+  crop?: CropRect
 }
 
 export interface ComputedRow {
@@ -140,8 +142,12 @@ export interface ComputedRow {
  */
 export function computeRow(photo: Photo, s: RowSettings, hasOverride: boolean): ComputedRow {
   const { targetW: W, targetH: H, fit } = s
-  const rW = W / photo.w
-  const rH = H / photo.h
+  // A crop shrinks the effective source the box is measured against, so the
+  // scale%/upscale flag reflect enlarging just the kept region.
+  const srcW = Math.max(1, Math.round(photo.w * (s.crop?.w ?? 1)))
+  const srcH = Math.max(1, Math.round(photo.h * (s.crop?.h ?? 1)))
+  const rW = W / srcW
+  const rH = H / srcH
 
   // All three modes now produce the exact target box on disk:
   //  Fit     → letterbox (whole image + bars),  ratio = min (content scale)

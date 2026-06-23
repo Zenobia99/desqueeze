@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  CropRect,
   ExportItemRequest,
   ImportedPhoto,
   LibrarySource,
@@ -89,7 +90,10 @@ export default function App() {
     return computeTotals(rows)
   }, [s.rows, s.selected, s.selCount])
 
-  const destinationLabel = destination ? destination.split('/').pop() || 'Optimised' : 'Optimised'
+  // The destination button is a folder picker; until one is chosen, exports go
+  // to ~/Downloads/Desqueeze Export, so show that rather than a verb-like label.
+  const destinationLabel = destination ? destination.split('/').pop() || 'Desqueeze Export' : 'Desqueeze Export'
+  const destinationHint = destination ?? '~/Downloads/Desqueeze Export (default)'
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -133,6 +137,7 @@ export default function App() {
       fit: e.fit,
       rotation: e.rotation,
       flipH: e.flipH,
+      crop: e.crop,
       needsUpscale: canUpscale,
       upModel: e.upModel,
       upSpeed: e.upSpeed,
@@ -156,6 +161,9 @@ export default function App() {
   const [compareOrig, setCompareOrig] = useState(false)
   // Upscale preview view: false → whole image (true proportions), true → 1:1 zoom.
   const [zoom, setZoom] = useState(false)
+  // Crop editor: open state + the raw source image to draw the region on.
+  const [cropEditing, setCropEditing] = useState(false)
+  const [cropSource, setCropSource] = useState<{ url: string; w: number; h: number } | null>(null)
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -194,6 +202,42 @@ export default function App() {
 
   const onToggleCompare = useCallback(() => setCompareOrig((v) => !v), [])
   const onToggleZoom = useCallback(() => setZoom((v) => !v), [])
+
+  // Crop editor handlers. The region commits per-photo; Reset clears it.
+  const onCropEdit = useCallback(() => setCropEditing((v) => !v), [])
+  const onCropDone = useCallback(() => setCropEditing(false), [])
+  const onCropCommit = useCallback(
+    (r: CropRect) => {
+      // A full-frame region isn't really a crop — store undefined so the
+      // "Cropped" badge and pipeline stay accurate.
+      const full = r.x <= 0.002 && r.y <= 0.002 && r.w >= 0.998 && r.h >= 0.998
+      s.setCrop(full ? undefined : r)
+    },
+    [s]
+  )
+  const onCropReset = useCallback(() => s.setCrop(undefined), [s])
+
+  // Fetch the raw source image for the crop editor when it opens (or the
+  // selected photo changes). Depends only on the source, not output settings.
+  const cropSourceKey = leadRow ? leadRow.photo.photosId ?? leadRow.photo.path ?? '' : ''
+  useEffect(() => {
+    if (!cropEditing || !previewReq || !window.desqueeze) {
+      setCropSource(null)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const res = await window.desqueeze!.preview({ ...previewReq, sourceView: true })
+      if (cancelled) return
+      setCropSource(
+        res.ok && res.dataUrl ? { url: res.dataUrl, w: res.width ?? 0, h: res.height ?? 0 } : null
+      )
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropEditing, cropSourceKey])
 
   const handlePreviewUpscale = useCallback(async () => {
     if (!previewReq || !window.desqueeze || upscaleLoading) return
@@ -358,6 +402,7 @@ export default function App() {
           fit: e.fit,
           rotation: e.rotation,
           flipH: e.flipH,
+          crop: e.crop,
           needsUpscale: r.upscale && e.upscale,
           upModel: e.upModel,
           upSpeed: e.upSpeed,
@@ -470,6 +515,14 @@ export default function App() {
               onToggleCompare={onToggleCompare}
               zoom={zoom}
               onToggleZoom={onToggleZoom}
+              cropEditing={cropEditing}
+              cropSrc={cropSource?.url ?? null}
+              cropNatW={cropSource?.w ?? 0}
+              cropNatH={cropSource?.h ?? 0}
+              currentCrop={s.crop}
+              onCropCommit={onCropCommit}
+              onCropReset={onCropReset}
+              onCropDone={onCropDone}
             />
           )}
           <Queue
@@ -503,6 +556,9 @@ export default function App() {
           onRotateCW={s.rotateCW}
           onRotateCCW={s.rotateCCW}
           onToggleFlip={s.toggleFlip}
+          cropActive={!!s.crop}
+          cropEditing={cropEditing}
+          onCropEdit={onCropEdit}
         />
       </div>
 
@@ -517,6 +573,8 @@ export default function App() {
         exportCount={s.selCount}
         exportDisabled={s.selCount === 0}
         destinationLabel={destinationLabel}
+        destinationHint={destinationHint}
+        destinationIsDefault={!destination}
         exporting={exporting}
         onChooseDestination={handleChooseDestination}
         onExport={handleExport}
