@@ -30,6 +30,8 @@ export interface UpscaleResult {
   buffer: Buffer
   width: number
   height: number
+  /** The AI factor actually applied (2 | 3 | 4). */
+  scale: number
   /** Identifies the implementation that produced this (for diagnostics). */
   engine: string
 }
@@ -98,12 +100,12 @@ export class RealUpscalyEngine implements UpscalyEngine {
       const model = MODEL_MAP[req.model] ?? MODEL_MAP.Photo
       const inMeta = await sharp(prepared).metadata()
       const inLongest = Math.max(inMeta.width ?? 0, inMeta.height ?? 0)
-      const scale = String(pickScale(inLongest, req.targetLongest, req.scale ?? 4))
+      const factor = pickScale(inLongest, req.targetLongest, req.scale ?? 4)
 
       await new Promise<void>((resolve, reject) => {
         execFile(
           UPSCAYL_BIN,
-          ['-i', inPath, '-o', outPath, '-m', UPSCAYL_MODELS, '-n', model, '-s', scale],
+          ['-i', inPath, '-o', outPath, '-m', UPSCAYL_MODELS, '-n', model, '-s', String(factor)],
           { timeout: 120000 },
           (err, _stdout, stderr) => {
             if (err) reject(new Error(`upscayl failed: ${stderr || err.message}`))
@@ -114,7 +116,7 @@ export class RealUpscalyEngine implements UpscalyEngine {
 
       const buffer = await fs.readFile(outPath)
       const meta = await sharp(buffer).metadata()
-      return { buffer, width: meta.width ?? 0, height: meta.height ?? 0, engine: this.name }
+      return { buffer, width: meta.width ?? 0, height: meta.height ?? 0, scale: factor, engine: this.name }
     } finally {
       fs.rm(work, { recursive: true, force: true }).catch(() => {})
     }
@@ -137,7 +139,7 @@ export class LanczosUpscalyEngine implements UpscalyEngine {
     const width = Math.round((inMeta.width ?? 0) * scale)
     const height = Math.round((inMeta.height ?? 0) * scale)
     const buffer = await sharp(capped).resize({ width, height, kernel: 'lanczos3' }).png().toBuffer()
-    return { buffer, width, height, engine: this.name }
+    return { buffer, width, height, scale, engine: this.name }
   }
 }
 

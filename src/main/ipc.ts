@@ -151,6 +151,7 @@ export async function runExport(
       input = await orientBuffer(input)
       input = await cropBuffer(input, item.crop)
       let upscaled = false
+      let upFactor = 0
 
       // Route through the Upscaly engine when the target exceeds source.
       if (item.needsUpscale && upscaly.available()) {
@@ -163,6 +164,7 @@ export async function runExport(
         })
         input = up.buffer
         upscaled = true
+        upFactor = up.scale
       }
 
       const out = await processImage({
@@ -178,9 +180,9 @@ export async function runExport(
       })
 
       const ext = extForResolvedFormat(out.format)
-      // Tag AI-upscaled outputs so they don't overwrite a plain export at the
-      // same target width (and vice versa).
-      const aiTag = upscaled ? '-ai' : ''
+      // Tag AI-upscaled outputs with the factor applied so they don't overwrite
+      // a plain export at the same target width (and vice versa).
+      const aiTag = upscaled ? `-ai${upFactor}x` : ''
       const outputPath = join(destination, `${item.name}@${item.width}w${aiTag}.${ext}`)
       await fs.writeFile(outputPath, out.buffer)
 
