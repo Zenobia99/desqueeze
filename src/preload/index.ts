@@ -19,6 +19,9 @@ const api = {
   preview: (req: PreviewRequest): Promise<PreviewResult> => ipcRenderer.invoke('photos:preview', req),
   /** Query which optional on-device engines are available (e.g. colourise). */
   capabilities: (): Promise<Capabilities> => ipcRenderer.invoke('caps:get'),
+  /** Pick & install a Core ML colourise model; resolves with new availability. */
+  installColouriseModel: (): Promise<{ ok: boolean; available: boolean; error?: string }> =>
+    ipcRenderer.invoke('colourise:install'),
   addPhotos: (): Promise<ImportedPhoto[]> => ipcRenderer.invoke('photos:add'),
   /** Import dropped files/folders by absolute path. */
   importPaths: (paths: string[]): Promise<ImportedPhoto[]> =>

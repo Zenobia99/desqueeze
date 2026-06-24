@@ -213,6 +213,14 @@ export default function App() {
   useEffect(() => {
     window.desqueeze?.capabilities().then(setCaps).catch(() => {})
   }, [])
+  const installColourise = useCallback(async () => {
+    const res = await window.desqueeze?.installColouriseModel?.()
+    if (!res) return
+    if (res.available) setCaps({ colourise: true })
+    if (!res.ok && res.error) setToast(`Couldn't install model: ${res.error}`)
+    else if (res.ok && !res.available)
+      setToast('Model copied, but colourise needs macOS (Apple Silicon) to run.')
+  }, [])
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -614,6 +622,7 @@ export default function App() {
           colourise={s.colourise}
           setColourise={s.setColourise}
           colouriseAvailable={caps.colourise}
+          onInstallColourise={installColourise}
         />
       </div>
 

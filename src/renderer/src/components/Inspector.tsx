@@ -126,6 +126,8 @@ export interface InspectorProps {
   colourise: boolean
   setColourise: (b: boolean) => void
   colouriseAvailable: boolean
+  /** Open a picker to install the Core ML colourise model. */
+  onInstallColourise: () => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -420,12 +422,28 @@ function Inspector(p: InspectorProps) {
                 <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
               </button>
             ) : (
-              <span style={{ font: '600 10.5px -apple-system', color: '#b0b0b5' }}>Setup</span>
+              <button
+                onClick={p.onInstallColourise}
+                style={{
+                  flex: 'none',
+                  height: 26,
+                  padding: '0 11px',
+                  border: 'none',
+                  borderRadius: 7,
+                  background: '#1366d6',
+                  color: '#fff',
+                  font: '600 11.5px -apple-system',
+                  cursor: 'pointer'
+                }}
+              >
+                Choose model…
+              </button>
             )}
           </div>
           {!p.colouriseAvailable && (
             <div style={{ padding: '0 12px 12px', font: '400 11px -apple-system', color: '#9a9aa0', lineHeight: 1.45 }}>
-              Add a Core ML colourise model to enable on-device (private, no server) colourising.
+              Pick your Core ML model (.mlmodel / .mlpackage) once — it installs locally and runs
+              privately on-device, no server.
             </div>
           )}
         </div>

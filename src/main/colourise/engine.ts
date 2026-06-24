@@ -199,6 +199,24 @@ export function getColouriseEngine(): ColouriseEngine {
   return engine
 }
 
+/**
+ * Install a user-picked Core ML model into the app's model folder (copying the
+ * file/bundle), replacing any existing one. Returns whether colourise is now
+ * available. Lets the UI offer a "Choose model…" picker instead of asking the
+ * user to find a hidden folder.
+ */
+export async function installColouriseModel(srcPath: string): Promise<boolean> {
+  const dir = modelDir()
+  await fs.mkdir(dir, { recursive: true })
+  for (const name of ['colourise.mlmodelc', 'colourise.mlmodel', 'colourise.mlpackage']) {
+    await fs.rm(join(dir, name), { recursive: true, force: true }).catch(() => {})
+  }
+  const lower = srcPath.toLowerCase()
+  const ext = lower.endsWith('.mlmodelc') ? 'mlmodelc' : lower.endsWith('.mlpackage') ? 'mlpackage' : 'mlmodel'
+  await fs.cp(srcPath, join(dir, `colourise.${ext}`), { recursive: true })
+  return getColouriseEngine().available()
+}
+
 export function logColouriseRuntime(): void {
   const model = findModel()
   const ok = process.platform === 'darwin' && model !== null

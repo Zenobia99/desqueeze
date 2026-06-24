@@ -4,7 +4,7 @@ import { join, basename, extname } from 'path'
 import { processImage, extForResolvedFormat, cropBuffer, orientBuffer, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
-import { getColouriseEngine } from './colourise/engine'
+import { getColouriseEngine, installColouriseModel } from './colourise/engine'
 import { SPEED_CAP } from '@shared/data'
 import type {
   ExportProgress,
@@ -472,6 +472,26 @@ export function registerIpc(): void {
   ipcMain.handle('caps:get', async (): Promise<{ colourise: boolean }> => {
     return { colourise: colourise.available() }
   })
+
+  // Let the user pick a Core ML colourise model; copy it into the model folder.
+  ipcMain.handle(
+    'colourise:install',
+    async (): Promise<{ ok: boolean; available: boolean; error?: string }> => {
+      const res = await dialog.showOpenDialog({
+        title: 'Choose a Core ML colourise model',
+        buttonLabel: 'Use Model',
+        properties: ['openFile', 'openDirectory'],
+        filters: [{ name: 'Core ML model', extensions: ['mlmodel', 'mlpackage', 'mlmodelc'] }]
+      })
+      if (res.canceled || !res.filePaths[0]) return { ok: false, available: colourise.available() }
+      try {
+        const available = await installColouriseModel(res.filePaths[0])
+        return { ok: true, available }
+      } catch (e) {
+        return { ok: false, available: colourise.available(), error: e instanceof Error ? e.message : String(e) }
+      }
+    }
+  )
 
   ipcMain.handle('dialog:chooseDestination', async (): Promise<string | null> => {
     const res = await dialog.showOpenDialog({
