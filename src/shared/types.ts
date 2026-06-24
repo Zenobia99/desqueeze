@@ -31,6 +31,8 @@ export interface Photo {
   path?: string
   /** PhotoKit local identifier for assets that live in the macOS Photos library. */
   photosId?: string
+  /** Capture/added date as epoch ms, for date sorting (undefined when unknown). */
+  date?: number
   override?: PhotoOverride
 }
 

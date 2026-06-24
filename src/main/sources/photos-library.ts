@@ -119,7 +119,8 @@ case "list":
       "filename": filename(a),
       "width": a.pixelWidth,
       "height": a.pixelHeight,
-      "uti": uti(a)
+      "uti": uti(a),
+      "date": Int((a.creationDate ?? Date(timeIntervalSince1970: 0)).timeIntervalSince1970 * 1000)
     ]
     if let t = thumbBase64(a, thumbMax) { d["thumb"] = t }
     arr.append(d)
@@ -153,6 +154,8 @@ interface RawAsset {
   height: number
   uti: string
   thumb?: string
+  /** creationDate as epoch ms (0 when unknown). */
+  date?: number
 }
 
 function utiToFormat(uti: string, filename: string): OutputFormat {
@@ -276,7 +279,8 @@ export class PhotosLibrarySource {
       favourite: kind === 'favorites',
       gradient: 'linear-gradient(165deg,#c9c9ce,#a8a8ad)',
       thumbnailUrl: a.thumb ? `data:image/jpeg;base64,${a.thumb}` : undefined,
-      photosId: a.id
+      photosId: a.id,
+      date: a.date || undefined
     }))
   }
 

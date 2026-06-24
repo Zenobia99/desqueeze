@@ -141,10 +141,21 @@ export default function App() {
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase()
     const filtered = q ? s.rows.filter((r) => r.photo.name.toLowerCase().includes(q)) : s.rows
-    if (sortBy === 'oldest') return [...filtered].reverse()
     if (sortBy === 'name')
       return [...filtered].sort((a, b) => a.photo.name.localeCompare(b.photo.name, undefined, { numeric: true }))
-    return filtered // 'recent' = source order
+    // Date sort: items with a real date sort by it; any without keep source
+    // order. A stable sort by index preserves ties / the source ordering.
+    const hasDates = filtered.some((r) => r.photo.date)
+    if (!hasDates) return sortBy === 'oldest' ? [...filtered].reverse() : filtered
+    const dir = sortBy === 'oldest' ? 1 : -1
+    return filtered
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => {
+        const da = a.r.photo.date ?? 0
+        const db = b.r.photo.date ?? 0
+        return da === db ? a.i - b.i : (da - db) * dir
+      })
+      .map((x) => x.r)
   }, [s.rows, search, sortBy])
 
   // Export-bar estimate reflects the selection (what will export); the whole

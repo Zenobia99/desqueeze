@@ -104,6 +104,12 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
       .resize({ width: 176, height: 120, fit: 'cover' })
       .png()
       .toBuffer()
+    // No dependency-free EXIF date parse, so use the file's modified time as the
+    // date proxy for imports (library assets carry their real creationDate).
+    const date = await fs
+      .stat(path)
+      .then((s) => Math.round(s.mtimeMs))
+      .catch(() => undefined)
     return {
       name: basename(path, extname(path)),
       w,
@@ -112,7 +118,8 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
       favourite: false,
       gradient: 'linear-gradient(165deg,#c9c9ce,#a8a8ad)',
       thumbnailUrl: `data:image/png;base64,${thumb.toString('base64')}`,
-      path
+      path,
+      date
     }
   } catch {
     return null
