@@ -143,10 +143,12 @@ export const RotateCW = ({ size = 17, color = '#3a3a3f' }: P) => (
   </svg>
 )
 
-export const FlipIcon = ({ size = 17, color = '#3a3a3f' }: P) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" {...base(color)} strokeWidth={1.9}>
-    <path d="M6 3v4H2M6 7L2 3M22 21H8a2 2 0 01-2-2V7" />
-    <path d="M6 7h12a2 2 0 012 2v9" />
+export const FlipIcon = ({ size = 16, color = '#3a3a3f' }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round">
+    {/* mirror line + two triangles pointing outward (flip horizontal) */}
+    <line x1="12" y1="2.5" x2="12" y2="21.5" strokeDasharray="2.5 2.5" strokeLinecap="round" />
+    <path d="M9.5 7.5l-5 4.5 5 4.5z" fill={color} stroke="none" />
+    <path d="M14.5 7.5l5 4.5-5 4.5z" fill={color} stroke="none" />
   </svg>
 )
 

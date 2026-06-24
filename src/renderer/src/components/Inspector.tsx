@@ -294,7 +294,7 @@ function Inspector(p: InspectorProps) {
       </div>
 
       {/* Quality */}
-      <div style={{ padding: '0 18px 16px' }}>
+      <div style={{ padding: '0 18px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <span style={{ ...groupLabel, marginBottom: 0 }}>Quality</span>
           <span style={{ font: `600 12px ${mono}`, color: '#1d1d1f' }}>{p.quality}%</span>
@@ -360,32 +360,6 @@ function Inspector(p: InspectorProps) {
             Quality is auto-tuned per image to stay under {p.maxSizeKb} KB (lossy formats).
           </div>
         )}
-      </div>
-
-      {/* Filename */}
-      <div style={{ padding: '0 18px 22px' }}>
-        <div style={groupLabel}>Filename</div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            height: 34,
-            padding: '0 10px',
-            background: '#ffffff',
-            border: '0.5px solid #d8d8dc',
-            borderRadius: 8,
-            gap: 6
-          }}
-        >
-          <span style={{ font: `400 12.5px ${mono}`, color: '#1d1d1f' }}>{'{name}'}</span>
-          <span style={{ font: `400 12.5px ${mono}`, color: '#0a84ff' }}>@{'{w}'}w</span>
-          <span style={{ marginLeft: 'auto', font: '400 11.5px -apple-system', color: '#b0b0b5' }}>
-            .{'{ext}'}
-          </span>
-        </div>
-        <div style={{ font: '400 11px -apple-system', color: '#a0a0a5', marginTop: 6 }}>
-          e.g. IMG_4821@1600w.jpg
-        </div>
       </div>
       </fieldset>
     </div>
