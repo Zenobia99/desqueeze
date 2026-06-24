@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, PRESET_GROUPS } from '@shared/data'
 import { computeRow, computeTotals, withCommas } from '@shared/compute'
 import type { ItemSettings, Photo, Preset, ViewMode } from '@shared/types'
@@ -8,6 +8,12 @@ type Overrides = Record<number, ItemSettings>
 export function useDesqueeze(photos: Photo[]) {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [selected, setSelected] = useState<number[]>([])
+  // Latest selection, readable inside other state updaters without nesting
+  // setState calls (which double-fires under StrictMode and breaks toggles).
+  const selectedRef = useRef(selected)
+  useEffect(() => {
+    selectedRef.current = selected
+  }, [selected])
   // Per-photo settings. A photo with no entry uses DEFAULT_SETTINGS.
   const [overrides, setOverrides] = useState<Overrides>({})
 
@@ -23,19 +29,19 @@ export function useDesqueeze(photos: Photo[]) {
   const clearSelection = useCallback(() => setSelected([]), [])
 
   // Apply a per-item update to every selected photo (no-op without a selection).
+  // A single, pure setOverrides call — no nested setState — so it behaves
+  // correctly when StrictMode double-invokes the updater.
   const applyEach = useCallback(
     (update: (cur: ItemSettings) => Partial<ItemSettings>) => {
-      setSelected((sel) => {
-        if (sel.length === 0) return sel
-        setOverrides((ov) => {
-          const next = { ...ov }
-          for (const id of sel) {
-            const cur = next[id] ?? DEFAULT_SETTINGS
-            next[id] = { ...cur, ...update(cur) }
-          }
-          return next
-        })
-        return sel
+      const sel = selectedRef.current
+      if (sel.length === 0) return
+      setOverrides((ov) => {
+        const next = { ...ov }
+        for (const id of sel) {
+          const cur = next[id] ?? DEFAULT_SETTINGS
+          next[id] = { ...cur, ...update(cur) }
+        }
+        return next
       })
     },
     []
@@ -129,26 +135,24 @@ export function useDesqueeze(photos: Photo[]) {
 
   // Set each selected photo's output to its OWN source dimensions ("Match").
   const matchSourceSizes = useCallback(() => {
-    setSelected((sel) => {
-      if (sel.length === 0) return sel
-      setOverrides((ov) => {
-        const next = { ...ov }
-        for (const id of sel) {
-          const p = photos.find((x) => x.id === id)
-          if (!p || !p.w || !p.h) continue
-          const cur = next[id] ?? DEFAULT_SETTINGS
-          next[id] = {
-            ...cur,
-            targetW: p.w,
-            targetH: p.h,
-            presetId: '',
-            presetName: 'Original',
-            presetDim: `${p.w} × ${p.h}`
-          }
+    const sel = selectedRef.current
+    if (sel.length === 0) return
+    setOverrides((ov) => {
+      const next = { ...ov }
+      for (const id of sel) {
+        const p = photos.find((x) => x.id === id)
+        if (!p || !p.w || !p.h) continue
+        const cur = next[id] ?? DEFAULT_SETTINGS
+        next[id] = {
+          ...cur,
+          targetW: p.w,
+          targetH: p.h,
+          presetId: '',
+          presetName: 'Original',
+          presetDim: `${p.w} × ${p.h}`
         }
-        return next
-      })
-      return sel
+      }
+      return next
     })
   }, [photos])
 
