@@ -13,7 +13,7 @@ import { computeTotals, fmtSize, resolutionClass, withCommas } from '@shared/com
 import { useDesqueeze } from './store'
 import Toolbar from './components/Toolbar'
 import Sidebar from './components/Sidebar'
-import Queue from './components/Queue'
+import Queue, { type SortKey } from './components/Queue'
 import Inspector from './components/Inspector'
 import ExportBar from './components/ExportBar'
 import PreviewPane from './components/PreviewPane'
@@ -134,12 +134,18 @@ export default function App() {
     phase?: ExportPhase
   } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // Queue sort. Source order is already recent-first (newest library assets +
+  // newest imports prepended), so 'recent' keeps it as-is.
+  const [sortBy, setSortBy] = useState<SortKey>('recent')
 
   const visibleRows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return s.rows
-    return s.rows.filter((r) => r.photo.name.toLowerCase().includes(q))
-  }, [s.rows, search])
+    const filtered = q ? s.rows.filter((r) => r.photo.name.toLowerCase().includes(q)) : s.rows
+    if (sortBy === 'oldest') return [...filtered].reverse()
+    if (sortBy === 'name')
+      return [...filtered].sort((a, b) => a.photo.name.localeCompare(b.photo.name, undefined, { numeric: true }))
+    return filtered // 'recent' = source order
+  }, [s.rows, search, sortBy])
 
   // Export-bar estimate reflects the selection (what will export); the whole
   // queue when nothing is selected (informational only).
@@ -611,6 +617,8 @@ export default function App() {
               onAddPhotos={handleAddPhotos}
               loading={isLoading}
               emptyMessage={emptyMessage}
+              sort={sortBy}
+              onSortChange={setSortBy}
             />
           )}
         </div>

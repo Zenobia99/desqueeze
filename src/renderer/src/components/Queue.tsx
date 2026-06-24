@@ -5,6 +5,13 @@ import { ChevronDown, ChevronRight, ArrowRight, HeartIcon, CheckIcon } from './I
 
 const mono = "ui-monospace,'SF Mono',Menlo,monospace"
 
+export type SortKey = 'recent' | 'oldest' | 'name'
+const SORT_LABEL: Record<SortKey, string> = {
+  recent: 'Recent first',
+  oldest: 'Oldest first',
+  name: 'Name'
+}
+
 // Prefer a real thumbnail; otherwise fall back to the gradient stand-in.
 function thumbBackground(photo: { thumbnailUrl?: string; gradient: string }): React.CSSProperties {
   return photo.thumbnailUrl
@@ -401,7 +408,9 @@ function Queue({
   onRemoveSelected,
   onAddPhotos,
   loading,
-  emptyMessage
+  emptyMessage,
+  sort,
+  onSortChange
 }: {
   rows: ComputedRow[]
   totalCount: number
@@ -414,8 +423,11 @@ function Queue({
   onAddPhotos?: () => void
   loading?: boolean
   emptyMessage?: string
+  sort: SortKey
+  onSortChange: (s: SortKey) => void
 }) {
   const isSel = (id: number) => selected.includes(id)
+  const [sortOpen, setSortOpen] = React.useState(false)
 
   // Lightweight list virtualization: only the rows in (and near) the viewport
   // are mounted, so a 1000-photo queue re-renders a handful of rows per frame
@@ -510,22 +522,69 @@ function Queue({
         >
           Select All
         </button>
-        <button
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            border: 'none',
-            background: 'transparent',
-            font: '400 12.5px -apple-system',
-            color: '#8a8a8e',
-            cursor: 'pointer',
-            padding: '4px 4px'
-          }}
-        >
-          Date Added
-          <ChevronDown />
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setSortOpen((o) => !o)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              border: 'none',
+              background: 'transparent',
+              font: '400 12.5px -apple-system',
+              color: sortOpen ? '#1d1d1f' : '#5a5a5f',
+              cursor: 'pointer',
+              padding: '4px 4px'
+            }}
+          >
+            {SORT_LABEL[sort]}
+            <ChevronDown />
+          </button>
+          {sortOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setSortOpen(false)} />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 26,
+                  right: 0,
+                  zIndex: 10,
+                  minWidth: 150,
+                  background: '#fff',
+                  border: '0.5px solid #d8d8dc',
+                  borderRadius: 8,
+                  boxShadow: '0 6px 18px rgba(0,0,0,.14)',
+                  padding: 4
+                }}
+              >
+                {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+                  <div
+                    key={k}
+                    className={k === sort ? '' : 'dq-hover'}
+                    onClick={() => {
+                      onSortChange(k)
+                      setSortOpen(false)
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 9px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      font: '500 12.5px -apple-system',
+                      color: '#1d1d1f',
+                      background: k === sort ? '#1473e6' : 'transparent'
+                    }}
+                  >
+                    <span style={{ color: k === sort ? '#fff' : '#1d1d1f' }}>{SORT_LABEL[k]}</span>
+                    {k === sort && <CheckIcon style={{ marginLeft: 'auto' }} />}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {emptyMessage && rows.length === 0 ? (
