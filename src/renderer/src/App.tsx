@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CropRect,
+  ExportPhase,
   ExportItemRequest,
   ImportedPhoto,
   LibrarySource,
@@ -18,6 +19,15 @@ import ExportBar from './components/ExportBar'
 import PreviewPane from './components/PreviewPane'
 
 type SourceCache = Partial<Record<LibrarySource, Photo[]>>
+
+// Human verb for each export stage, shown live so a slow file doesn't look hung.
+const EXPORT_VERB: Record<ExportPhase, string> = {
+  colourising: 'Colourising',
+  upscaling: 'Upscaling',
+  resizing: 'Resizing',
+  saving: 'Saving',
+  done: 'Finishing'
+}
 
 export default function App() {
   const [source, setSource] = useState<LibrarySource>('recents')
@@ -117,7 +127,12 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [destination, setDestination] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
-  const [progress, setProgress] = useState<{ done: number; total: number; name: string } | null>(null)
+  const [progress, setProgress] = useState<{
+    done: number
+    total: number
+    name: string
+    phase?: ExportPhase
+  } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const visibleRows = useMemo(() => {
@@ -468,9 +483,9 @@ export default function App() {
           maxSizeKb: e.maxSizeKb
         }
       })
-      setProgress({ done: 0, total: items.length, name: '' })
+      setProgress({ done: 0, total: items.length, name: '', phase: 'resizing' })
       const off = window.desqueeze.onExportProgress((p) =>
-        setProgress({ done: p.index, total: p.total, name: p.name })
+        setProgress({ done: p.index, total: p.total, name: p.name, phase: p.phase })
       )
       try {
         const res = await window.desqueeze.exportPhotos({ items, destination: destination ?? '' })
@@ -662,21 +677,27 @@ export default function App() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12px -apple-system', marginBottom: 7 }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>
-              {progress.name ? `Exporting ${progress.name}` : 'Exporting…'}
+              {(progress.phase ? EXPORT_VERB[progress.phase] : 'Exporting') +
+                (progress.name ? ` ${progress.name}` : '…')}
             </span>
             <span style={{ flex: 'none', color: 'rgba(255,255,255,.75)' }}>
-              {progress.done}/{progress.total}
+              {Math.min(progress.done + 1, progress.total)} of {progress.total}
             </span>
           </div>
           <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,.18)', overflow: 'hidden' }}>
             <div
+              className="dq-progress-fill"
               style={{
                 height: '100%',
                 width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%`,
-                background: 'linear-gradient(90deg,#4a91f5,#1366d6)',
+                minWidth: 24,
+                borderRadius: 3,
                 transition: 'width .15s ease'
               }}
             />
+          </div>
+          <div style={{ font: '400 10.5px -apple-system', color: 'rgba(255,255,255,.55)', marginTop: 6 }}>
+            Working locally — this can take a moment for upscaling or colourising.
           </div>
         </div>
       )}

@@ -144,14 +144,19 @@ export interface ExportRequest {
   destination: string
 }
 
+/** Stage of work for the item currently being processed. */
+export type ExportPhase = 'colourising' | 'upscaling' | 'resizing' | 'saving' | 'done'
+
 /** Per-item progress emitted during an export run. */
 export interface ExportProgress {
-  /** 1-based index of the item that just finished. */
+  /** Count of items fully finished (so `index/total` is the completed fraction). */
   index: number
   total: number
   id: number
   name: string
   ok: boolean
+  /** What's happening to `name` right now (for live status text). */
+  phase?: ExportPhase
 }
 
 export interface ExportItemResult {

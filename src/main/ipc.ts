@@ -143,6 +143,10 @@ export async function runExport(
       results.push({ id: item.id, ok: false, error: 'no source for item' })
       continue
     }
+    // Announce the current stage (with `index` = items finished so far) so the
+    // UI can show "Upscaling…/Colourising…/Resizing…" live, not just a count.
+    const stage = (phase: 'colourising' | 'upscaling' | 'resizing' | 'saving'): void =>
+      onProgress?.({ index: i, total, id: item.id, name: item.name, ok: true, phase })
     try {
       let input = fromLibrary
         ? await photosLibrary.getImageBuffer(item.photosId as string)
@@ -157,6 +161,7 @@ export async function runExport(
       // Core ML model is installed.
       let coloured = false
       if (item.colourise && colourise.available()) {
+        stage('colourising')
         input = await colourise.colourise(input)
         coloured = true
       }
@@ -166,6 +171,7 @@ export async function runExport(
 
       // Route through the Upscaly engine when the target exceeds source.
       if (item.needsUpscale && upscaly.available()) {
+        stage('upscaling')
         const up = await upscaly.upscale({
           input,
           model: item.upModel,
@@ -178,6 +184,7 @@ export async function runExport(
         upFactor = up.scale
       }
 
+      stage('resizing')
       const out = await processImage({
         input,
         width: item.width,
