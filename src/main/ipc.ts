@@ -178,7 +178,10 @@ export async function runExport(
       })
 
       const ext = extForResolvedFormat(out.format)
-      const outputPath = join(destination, `${item.name}@${item.width}w.${ext}`)
+      // Tag AI-upscaled outputs so they don't overwrite a plain export at the
+      // same target width (and vice versa).
+      const aiTag = upscaled ? '-ai' : ''
+      const outputPath = join(destination, `${item.name}@${item.width}w${aiTag}.${ext}`)
       await fs.writeFile(outputPath, out.buffer)
 
       results.push({
