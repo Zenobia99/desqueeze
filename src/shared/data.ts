@@ -128,6 +128,7 @@ export const DEFAULT_SETTINGS: ItemSettings = {
   // AI upscaling is on by default; it only actually runs when the chosen output
   // is larger than the source, so this is a "use AI for enlargements" opt-out.
   upscale: true,
+  colourise: false,
   upModel: 'Standard',
   upSpeed: 'Balanced',
   maxFactor: 4,

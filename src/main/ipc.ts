@@ -4,6 +4,7 @@ import { join, basename, extname } from 'path'
 import { processImage, extForResolvedFormat, cropBuffer, orientBuffer, sharp } from './sharp-service'
 import { PhotosLibrarySource } from './sources/photos-library'
 import { createUpscalyEngine } from './upscaly/engine'
+import { getColouriseEngine } from './colourise/engine'
 import { SPEED_CAP } from '@shared/data'
 import type {
   ExportProgress,
@@ -120,6 +121,7 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
 
 const photosLibrary = new PhotosLibrarySource()
 const upscaly = createUpscalyEngine()
+const colourise = getColouriseEngine()
 
 /** Core export pipeline — shared by the IPC handler and verification harness. */
 export async function runExport(
@@ -150,6 +152,15 @@ export async function runExport(
       // upscaling and resize.
       input = await orientBuffer(input)
       input = await cropBuffer(input, item.crop)
+
+      // Colourise (B&W → colour) before any enlargement, when requested and the
+      // Core ML model is installed.
+      let coloured = false
+      if (item.colourise && colourise.available()) {
+        input = await colourise.colourise(input)
+        coloured = true
+      }
+
       let upscaled = false
       let upFactor = 0
 
@@ -180,10 +191,11 @@ export async function runExport(
       })
 
       const ext = extForResolvedFormat(out.format)
-      // Tag AI-upscaled outputs with the factor applied so they don't overwrite
-      // a plain export at the same target width (and vice versa).
+      // Tag AI outputs so variants of the same photo don't overwrite each other:
+      // the upscale factor and a colour marker.
       const aiTag = upscaled ? `-ai${upFactor}x` : ''
-      const outputPath = join(destination, `${item.name}@${item.width}w${aiTag}.${ext}`)
+      const colourTag = coloured ? '-color' : ''
+      const outputPath = join(destination, `${item.name}@${item.width}w${aiTag}${colourTag}.${ext}`)
       await fs.writeFile(outputPath, out.buffer)
 
       results.push({
@@ -280,6 +292,16 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         : await previewBase(sourceKey, loadSource)
     // Crop the source first so the preview reflects the kept region.
     input = await cropBuffer(input, req.crop)
+
+    // Colourise the preview too (so it's WYSIWYG); fall back to the original on
+    // any failure so a preview never hangs or breaks.
+    if (req.colourise && colourise.available()) {
+      try {
+        input = await colourise.colourise(input)
+      } catch {
+        /* keep the un-colourised input */
+      }
+    }
 
     if (req.needsUpscale && upscaly.available()) {
       const up = await upscaly.upscale({
@@ -446,6 +468,10 @@ export function registerIpc(): void {
       return out
     }
   )
+
+  ipcMain.handle('caps:get', async (): Promise<{ colourise: boolean }> => {
+    return { colourise: colourise.available() }
+  })
 
   ipcMain.handle('dialog:chooseDestination', async (): Promise<string | null> => {
     const res = await dialog.showOpenDialog({

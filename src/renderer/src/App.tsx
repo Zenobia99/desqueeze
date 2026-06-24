@@ -182,6 +182,7 @@ export default function App() {
       flipH: e.flipH,
       crop: e.crop,
       needsUpscale: canUpscale,
+      colourise: e.colourise,
       upModel: e.upModel,
       upSpeed: e.upSpeed,
       maxFactor: e.maxFactor,
@@ -207,6 +208,11 @@ export default function App() {
   // Crop editor: open state + the raw source image to draw the region on.
   const [cropEditing, setCropEditing] = useState(false)
   const [cropSource, setCropSource] = useState<{ url: string; w: number; h: number } | null>(null)
+  // Optional on-device engines (colourise model present?). Queried once.
+  const [caps, setCaps] = useState<{ colourise: boolean }>({ colourise: false })
+  useEffect(() => {
+    window.desqueeze?.capabilities().then(setCaps).catch(() => {})
+  }, [])
 
   // Fast preview (no AI) renders automatically on every change.
   useEffect(() => {
@@ -447,6 +453,7 @@ export default function App() {
           flipH: e.flipH,
           crop: e.crop,
           needsUpscale: r.upscale && e.upscale,
+          colourise: e.colourise,
           upModel: e.upModel,
           upSpeed: e.upSpeed,
           maxFactor: e.maxFactor,
@@ -604,6 +611,9 @@ export default function App() {
           cropActive={!!s.crop}
           cropEditing={cropEditing}
           onCropEdit={onCropEdit}
+          colourise={s.colourise}
+          setColourise={s.setColourise}
+          colouriseAvailable={caps.colourise}
         />
       </div>
 

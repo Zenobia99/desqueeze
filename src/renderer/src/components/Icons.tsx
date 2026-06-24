@@ -110,6 +110,12 @@ export const LockIcon = ({ size = 14, color = 'currentColor' }: P) => (
   </svg>
 )
 
+export const ColourDropIcon = ({ size = 16, color = '#fff' }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3s6 6.5 6 10.5a6 6 0 0 1-12 0C6 9.5 12 3 12 3z" />
+  </svg>
+)
+
 export const CropIcon = ({ size = 15, color = '#3a3a3f' }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 2v14a2 2 0 0 0 2 2h14" />

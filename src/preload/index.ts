@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
+  Capabilities,
   ExportProgress,
   ExportRequest,
   ExportResult,
@@ -16,6 +17,8 @@ const api = {
   loadSource: (source: LibrarySource): Promise<SourceLoadResult> =>
     ipcRenderer.invoke('photos:source', source),
   preview: (req: PreviewRequest): Promise<PreviewResult> => ipcRenderer.invoke('photos:preview', req),
+  /** Query which optional on-device engines are available (e.g. colourise). */
+  capabilities: (): Promise<Capabilities> => ipcRenderer.invoke('caps:get'),
   addPhotos: (): Promise<ImportedPhoto[]> => ipcRenderer.invoke('photos:add'),
   /** Import dropped files/folders by absolute path. */
   importPaths: (paths: string[]): Promise<ImportedPhoto[]> =>

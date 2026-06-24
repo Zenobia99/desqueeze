@@ -74,6 +74,8 @@ export interface ItemSettings {
   rotation: number
   flipH: boolean
   upscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed: UpscaleSpeed
@@ -126,6 +128,8 @@ export interface ExportItemRequest {
   crop?: CropRect
   /** Whether the target exceeds the source and needs the Upscaly engine. */
   needsUpscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise?: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed
@@ -181,6 +185,8 @@ export interface PreviewRequest {
   /** Optional source crop (normalized), applied before resize/upscale. */
   crop?: CropRect
   needsUpscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise?: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed
@@ -212,4 +218,10 @@ export interface PreviewResult {
   height?: number
   bytes?: number
   error?: string
+}
+
+/** Optional on-device engines the renderer can query to gate their UI. */
+export interface Capabilities {
+  /** The Core ML colourise model is installed and the platform supports it. */
+  colourise: boolean
 }

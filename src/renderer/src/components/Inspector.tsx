@@ -1,6 +1,7 @@
 import React from 'react'
 import type { OutputFormat, ResizeMode } from '@shared/types'
 import {
+  ColourDropIcon,
   CropIcon,
   RotateCCW,
   RotateCW,
@@ -121,6 +122,10 @@ export interface InspectorProps {
   /** Whether the crop editor is open. */
   cropEditing: boolean
   onCropEdit: () => void
+  /** Colourise (B&W → colour) toggle + whether the on-device model is installed. */
+  colourise: boolean
+  setColourise: (b: boolean) => void
+  colouriseAvailable: boolean
 }
 
 function Inspector(p: InspectorProps) {
@@ -360,6 +365,70 @@ function Inspector(p: InspectorProps) {
             Quality is auto-tuned per image to stay under {p.maxSizeKb} KB (lossy formats).
           </div>
         )}
+      </div>
+
+      {/* Colourise (on-device Core ML) */}
+      <div style={{ padding: '0 18px 22px' }}>
+        <div style={groupLabel}>Colourise</div>
+        <div
+          style={{
+            border: `0.5px solid ${p.colourise && p.colouriseAvailable ? 'rgba(212,103,255,.45)' : '#e2e2e6'}`,
+            borderRadius: 10,
+            background: p.colourise && p.colouriseAvailable ? 'rgba(212,103,255,.06)' : '#ffffff',
+            overflow: 'hidden'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px' }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                flex: 'none',
+                background: 'linear-gradient(135deg,#d467ff,#ff7eb3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: p.colouriseAvailable ? 1 : 0.5
+              }}
+            >
+              <ColourDropIcon />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: '600 13px -apple-system', color: '#1d1d1f' }}>Colourise B&amp;W</div>
+              <div style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>
+                {p.colouriseAvailable ? 'On-device · Neural Engine' : 'Model not installed'}
+              </div>
+            </div>
+            {p.colouriseAvailable ? (
+              <button
+                onClick={() => p.setColourise(!p.colourise)}
+                style={{
+                  width: 40,
+                  height: 24,
+                  flex: 'none',
+                  border: 'none',
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  padding: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: p.colourise ? '#34c759' : '#d4d4d9',
+                  justifyContent: p.colourise ? 'flex-end' : 'flex-start'
+                }}
+              >
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+              </button>
+            ) : (
+              <span style={{ font: '600 10.5px -apple-system', color: '#b0b0b5' }}>Setup</span>
+            )}
+          </div>
+          {!p.colouriseAvailable && (
+            <div style={{ padding: '0 12px 12px', font: '400 11px -apple-system', color: '#9a9aa0', lineHeight: 1.45 }}>
+              Add a Core ML colourise model to enable on-device (private, no server) colourising.
+            </div>
+          )}
+        </div>
       </div>
       </fieldset>
     </div>
