@@ -480,7 +480,9 @@ export function registerIpc(): void {
       const res = await dialog.showOpenDialog({
         title: 'Choose a Core ML colourise model',
         buttonLabel: 'Use Model',
-        properties: ['openFile', 'openDirectory'],
+        // openDirectory so .mlmodelc folders are selectable; showHiddenFiles so
+        // models living under dot-folders (e.g. ~/.gemini/…) are visible.
+        properties: ['openFile', 'openDirectory', 'showHiddenFiles'],
         filters: [{ name: 'Core ML model', extensions: ['mlmodel', 'mlpackage', 'mlmodelc'] }]
       })
       if (res.canceled || !res.filePaths[0]) return { ok: false, available: colourise.available() }
