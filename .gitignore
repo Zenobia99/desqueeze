@@ -5,3 +5,9 @@ dist/
 *.log
 *.tsbuildinfo
 .claude/settings.local.json
+
+# Local / temporary files
+.codegraph/
+*.png
+*.mlpackage/
+test_coreml.py

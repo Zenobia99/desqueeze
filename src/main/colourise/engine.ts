@@ -58,7 +58,7 @@ async function mergeLuminance(original: Buffer, colour: Buffer): Promise<Buffer>
   const col = await sharp(colour)
     .removeAlpha()
     .toColourspace('srgb')
-    .resize({ width: W, height: H, fit: 'fill' })
+    .resize({ width: W, height: H, fit: 'fill', kernel: 'cubic' })
     .raw()
     .toBuffer()
   const out = Buffer.allocUnsafe(W * H * 3)
@@ -68,8 +68,31 @@ async function mergeLuminance(original: Buffer, colour: Buffer): Promise<Buffer>
     const R = col[j]
     const G = col[j + 1]
     const B = col[j + 2]
-    const cb = -0.168736 * R - 0.331264 * G + 0.5 * B
-    const cr = 0.5 * R - 0.418688 * G - 0.081312 * B
+    let cb = -0.168736 * R - 0.331264 * G + 0.5 * B
+    let cr = 0.5 * R - 0.418688 * G - 0.081312 * B
+
+    // Localised edge desaturation (prevents light background color from bleeding onto dark foreground silhouettes)
+    const Y_col = 0.299 * R + 0.587 * G + 0.114 * B
+    const diff = Y_col - Y
+    if (diff > 20) {
+      const factor = Math.max(0, 1.0 - (diff - 20) / 40.0)
+      cb *= factor
+      cr *= factor
+    }
+
+    // Smooth desaturation for highlights (Y > 235) and shadows (Y < 80)
+    if (Y > 235) {
+      const x = (255.0 - Y) / (255.0 - 235.0)
+      const factor = x * x
+      cb *= factor
+      cr *= factor
+    } else if (Y < 80) {
+      const x = Y / 80.0
+      const factor = x * x
+      cb *= factor
+      cr *= factor
+    }
+
     out[j] = clamp(Y + 1.402 * cr)
     out[j + 1] = clamp(Y - 0.344136 * cb - 0.714136 * cr)
     out[j + 2] = clamp(Y + 1.772 * cb)
