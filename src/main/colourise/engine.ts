@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,18 +22,29 @@ export interface ColouriseEngine {
   colourise(input: Buffer): Promise<Buffer>
 }
 
-// Where the user drops the model. A compiled `.mlmodelc` is preferred (no
-// per-run compile); a raw `.mlmodel` also works (compiled on first use).
+// Where the user drops the model. Any Core ML model in this folder is used —
+// the filename doesn't matter — preferring a compiled .mlmodelc (no per-run
+// compile), then .mlpackage, then a raw .mlmodel.
 function modelDir(): string {
   return join(app.getPath('userData'), 'models')
 }
+function modelExt(name: string): number {
+  const n = name.toLowerCase()
+  if (n.endsWith('.mlmodelc')) return 0
+  if (n.endsWith('.mlpackage')) return 1
+  if (n.endsWith('.mlmodel')) return 2
+  return 99
+}
 function findModel(): string | null {
   const dir = modelDir()
-  for (const name of ['colourise.mlmodelc', 'colourise.mlmodel', 'colourise.mlpackage']) {
-    const p = join(dir, name)
-    if (existsSync(p)) return p
+  let entries: string[]
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return null
   }
-  return null
+  const models = entries.filter((e) => modelExt(e) < 99).sort((a, b) => modelExt(a) - modelExt(b))
+  return models.length ? join(dir, models[0]) : null
 }
 
 /** Cap the image fed to the model (its colour is low-frequency, and Vision
@@ -241,10 +252,17 @@ export async function installColouriseModel(srcPath: string): Promise<boolean> {
 }
 
 export function logColouriseRuntime(): void {
+  const dir = modelDir()
   const model = findModel()
   const ok = process.platform === 'darwin' && model !== null
+  let contents = '(no such folder)'
+  try {
+    contents = readdirSync(dir).join(', ') || '(empty)'
+  } catch {
+    /* folder doesn't exist yet */
+  }
   // eslint-disable-next-line no-console
   console.log(
-    `[colourise] available=${ok} · platform=${process.platform} · model=${model ?? `none (drop a Core ML model in ${modelDir()})`}`
+    `[colourise] available=${ok} · platform=${process.platform} · dir=${dir} · contents=[${contents}] · model=${model ?? 'none'}`
   )
 }
