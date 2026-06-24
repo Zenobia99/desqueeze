@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash, randomBytes } from 'node:crypto'
 import { app } from 'electron'
+import { sharp } from '../sharp-service'
 
 /**
  * On-device photo colouriser ("Colourise Engine"), behind a clean interface so
@@ -33,6 +34,47 @@ function findModel(): string | null {
     if (existsSync(p)) return p
   }
   return null
+}
+
+/** Cap the image fed to the model (its colour is low-frequency, and Vision
+ * rescales to the model's baked input anyway) to keep the temp PNG small. */
+async function capForModel(input: Buffer, cap = 1280): Promise<Buffer> {
+  const meta = await sharp(input).metadata()
+  if (Math.max(meta.width ?? 0, meta.height ?? 0) <= cap) return input
+  return sharp(input).resize({ width: cap, height: cap, fit: 'inside', withoutEnlargement: true }).png().toBuffer()
+}
+
+/**
+ * DeOldify post-step: keep the model's colour but the ORIGINAL's full-resolution
+ * detail. Transfer chroma (Cb/Cr, Rec.601) from the colourised result onto the
+ * original's luminance (Y), so output is as sharp as the source, not the model.
+ */
+async function mergeLuminance(original: Buffer, colour: Buffer): Promise<Buffer> {
+  const meta = await sharp(original).metadata()
+  const W = meta.width ?? 0
+  const H = meta.height ?? 0
+  if (!W || !H) return colour
+  const orig = await sharp(original).removeAlpha().toColourspace('srgb').raw().toBuffer()
+  const col = await sharp(colour)
+    .removeAlpha()
+    .toColourspace('srgb')
+    .resize({ width: W, height: H, fit: 'fill' })
+    .raw()
+    .toBuffer()
+  const out = Buffer.allocUnsafe(W * H * 3)
+  const clamp = (n: number): number => (n < 0 ? 0 : n > 255 ? 255 : n)
+  for (let p = 0, j = 0; p < W * H; p++, j += 3) {
+    const Y = 0.299 * orig[j] + 0.587 * orig[j + 1] + 0.114 * orig[j + 2]
+    const R = col[j]
+    const G = col[j + 1]
+    const B = col[j + 2]
+    const cb = -0.168736 * R - 0.331264 * G + 0.5 * B
+    const cr = 0.5 * R - 0.418688 * G - 0.081312 * B
+    out[j] = clamp(Y + 1.402 * cr)
+    out[j + 1] = clamp(Y - 0.344136 * cb - 0.714136 * cr)
+    out[j + 2] = clamp(Y + 1.772 * cb)
+  }
+  return sharp(out, { raw: { width: W, height: H, channels: 3 } }).png().toBuffer()
 }
 
 // Swift helper: load the Core ML model (Neural Engine via .all compute units),
@@ -95,7 +137,6 @@ do {
 class CoreMLColouriseEngine implements ColouriseEngine {
   readonly name = 'coreml'
   private binPromise: Promise<string> | null = null
-
   available(): boolean {
     return process.platform === 'darwin' && findModel() !== null
   }
@@ -137,13 +178,15 @@ class CoreMLColouriseEngine implements ColouriseEngine {
     const inPath = join(dir, `in_${id}.png`)
     const outPath = join(dir, `out_${id}.png`)
     try {
-      await fs.writeFile(inPath, input)
+      await fs.writeFile(inPath, await capForModel(input))
       await new Promise<void>((resolve, reject) => {
         execFile(bin, [model, inPath, outPath], { timeout: 120000 }, (err, _o, stderr) =>
           err ? reject(new Error(`colourise failed: ${stderr || err.message}`)) : resolve()
         )
       })
-      return await fs.readFile(outPath)
+      const modelOut = await fs.readFile(outPath)
+      // Recombine the model's colour with the original full-res luminance.
+      return await mergeLuminance(input, modelOut)
     } finally {
       fs.rm(dir, { recursive: true, force: true }).catch(() => {})
     }
