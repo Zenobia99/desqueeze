@@ -124,7 +124,6 @@ export default function App() {
     }
   }, [sourcePhotos])
 
-  const [search, setSearch] = useState('')
   const [destination, setDestination] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState<{
@@ -139,8 +138,7 @@ export default function App() {
   const [sortBy, setSortBy] = useState<SortKey>('recent')
 
   const visibleRows = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    const filtered = q ? s.rows.filter((r) => r.photo.name.toLowerCase().includes(q)) : s.rows
+    const filtered = s.rows
     if (sortBy === 'name')
       return [...filtered].sort((a, b) => a.photo.name.localeCompare(b.photo.name, undefined, { numeric: true }))
     // Date sort: items with a real date sort by it; any without keep source
@@ -156,7 +154,7 @@ export default function App() {
         return da === db ? a.i - b.i : (da - db) * dir
       })
       .map((x) => x.r)
-  }, [s.rows, search, sortBy])
+  }, [s.rows, sortBy])
 
   // Export-bar estimate reflects the selection (what will export); the whole
   // queue when nothing is selected (informational only).
@@ -552,12 +550,7 @@ export default function App() {
       }}
       onDrop={onDropFiles}
     >
-      <Toolbar
-        viewMode={s.viewMode}
-        setViewMode={s.setViewMode}
-        search={search}
-        setSearch={setSearch}
-      />
+      <Toolbar />
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <Sidebar
@@ -640,12 +633,12 @@ export default function App() {
         <Inspector
           selCount={s.selCount}
           disabled={!s.hasSelection}
+          viewMode={s.viewMode}
+          setViewMode={s.setViewMode}
           format={s.format}
           setFormat={s.setFormat}
           fit={s.fit}
           setFit={s.setFit}
-          quality={s.quality}
-          setQuality={s.setQuality}
           maxSizeKb={s.maxSizeKb}
           setMaxSizeKb={s.setMaxSizeKb}
           rotation={s.rotation}

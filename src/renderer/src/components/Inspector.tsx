@@ -1,5 +1,5 @@
 import React from 'react'
-import type { OutputFormat, ResizeMode } from '@shared/types'
+import type { OutputFormat, ResizeMode, ViewMode } from '@shared/types'
 import ColourisePanel from './ColourisePanel'
 import {
   CropIcon,
@@ -8,7 +8,9 @@ import {
   FlipIcon,
   FillIcon,
   FitIcon,
-  StretchIcon
+  StretchIcon,
+  ListIcon,
+  GridIcon
 } from './Icons'
 
 const mono = 'ui-monospace,Menlo,monospace'
@@ -72,6 +74,30 @@ function SizeField({ value, onCommit }: { value: number; onCommit: (n: number) =
   )
 }
 
+// Segmented list/grid toggle for the queue view (sits in the panel header).
+function ViewBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 30,
+        height: 24,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: 'none',
+        borderRadius: 6,
+        cursor: 'pointer',
+        color: active ? '#1d1d1f' : '#9a9aa0',
+        background: active ? '#ffffff' : 'transparent',
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,.12)' : 'none'
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 function CropBtn({
   onClick,
   active,
@@ -104,12 +130,13 @@ function CropBtn({
 export interface InspectorProps {
   selCount: number
   disabled: boolean
+  /** Queue list/grid view toggle (lives in this panel's header now). */
+  viewMode: ViewMode
+  setViewMode: (v: ViewMode) => void
   format: OutputFormat
   setFormat: (f: OutputFormat) => void
   fit: ResizeMode
   setFit: (f: ResizeMode) => void
-  quality: number
-  setQuality: (q: number) => void
   maxSizeKb: number
   setMaxSizeKb: (n: number) => void
   rotation: number
@@ -147,37 +174,43 @@ function Inspector(p: InspectorProps) {
         flexDirection: 'column'
       }}
     >
-      {/* Disabled veil + hint when nothing is selected */}
-      {p.disabled && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 5,
-            background: 'rgba(247,247,249,.55)',
-            cursor: 'default'
-          }}
-        />
-      )}
-      <fieldset
-        disabled={p.disabled}
-        style={{
-          border: 'none',
-          margin: 0,
-          padding: 0,
-          minInlineSize: 'auto',
-          opacity: p.disabled ? 0.5 : 1
-        }}
-      >
-      {/* Header */}
-      <div style={{ padding: '16px 18px 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <span style={{ font: '600 16px -apple-system', color: '#1d1d1f' }}>Format &amp; Adjust</span>
-          <span style={{ font: '400 12.5px -apple-system', color: p.disabled ? '#b0b0b5' : '#8a8a8e' }}>
-            {p.disabled ? 'Select photos to edit' : `${p.selCount} selected`}
-          </span>
+      {/* Header — outside the disabled fieldset so the queue view toggle always
+          works, even with no selection. */}
+      <div style={{ padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ font: '600 15px -apple-system', color: '#1d1d1f' }}>Format &amp; Adjust</span>
+        <div style={{ display: 'flex', alignItems: 'center', background: '#e7e7ea', borderRadius: 7, padding: 2, gap: 2 }}>
+          <ViewBtn active={p.viewMode === 'list'} onClick={() => p.setViewMode('list')}>
+            <ListIcon />
+          </ViewBtn>
+          <ViewBtn active={p.viewMode === 'grid'} onClick={() => p.setViewMode('grid')}>
+            <GridIcon />
+          </ViewBtn>
         </div>
       </div>
+
+      <div style={{ position: 'relative' }}>
+        {/* Disabled veil when nothing is selected */}
+        {p.disabled && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 5,
+              background: 'rgba(247,247,249,.55)',
+              cursor: 'default'
+            }}
+          />
+        )}
+        <fieldset
+          disabled={p.disabled}
+          style={{
+            border: 'none',
+            margin: 0,
+            padding: 0,
+            minInlineSize: 'auto',
+            opacity: p.disabled ? 0.5 : 1
+          }}
+        >
 
       {/* Format */}
       <div style={{ padding: '0 18px 14px' }}>
@@ -304,28 +337,15 @@ function Inspector(p: InspectorProps) {
         </div>
       </div>
 
-      {/* Quality */}
+      {/* File size cap (quality auto-tunes to hit it) */}
       <div style={{ padding: '0 18px 22px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ ...groupLabel, marginBottom: 0 }}>Quality</span>
-          <span style={{ font: `600 12px ${mono}`, color: '#1d1d1f' }}>{p.quality}%</span>
-        </div>
-        <input
-          className="dq-range"
-          type="range"
-          min={10}
-          max={100}
-          value={p.quality}
-          onChange={(e) => p.setQuality(+e.target.value)}
-          style={{ width: '100%' }}
-        />
+        <div style={groupLabel}>File Size</div>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 8,
-            marginTop: 11,
             padding: '9px 11px',
             background: '#ffffff',
             border: '0.5px solid #d8d8dc',
@@ -383,10 +403,10 @@ function Inspector(p: InspectorProps) {
           onInstall={p.onInstallColourise}
         />
       </div>
-      </fieldset>
+        </fieldset>
+      </div>
 
-      {/* Persistent add affordance in the panel's stable dead space (sits above
-          the disabled veil so it works with or without a selection). */}
+      {/* Persistent add affordance in the panel's stable dead space. */}
       {p.hasPhotos && (
         <button
           className="dq-hover"

@@ -38,14 +38,14 @@ function ExportBar({
   return (
     <div
       style={{
-        height: 58,
+        height: 48,
         flex: 'none',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 18px',
+        padding: '0 16px',
         background: 'linear-gradient(#fbfbfc,#f1f1f3)',
         borderTop: '0.5px solid #d8d8db',
-        gap: 14
+        gap: 12
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
