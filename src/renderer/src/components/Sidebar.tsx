@@ -3,6 +3,7 @@ import type { LibrarySource, PresetGroup, UpscaleModel, UpscaleSpeed } from '@sh
 import photosIcon from '../assets/photos-icon.png'
 import { PhotoMountainIcon } from './Icons'
 import UpscalyPanel from './UpscalyPanel'
+import ColourisePanel from './ColourisePanel'
 import OutputSize from './OutputSize'
 
 const sectionLabel: React.CSSProperties = {
@@ -74,7 +75,10 @@ function Sidebar({
   maxFactor,
   setMaxFactor,
   upscaleDisabled,
-  onAddPhotos,
+  colourise,
+  setColourise,
+  colouriseAvailable,
+  onInstallColourise,
   outputSummary,
   onEnableAi
 }: {
@@ -104,7 +108,10 @@ function Sidebar({
   maxFactor: number
   setMaxFactor: (n: number) => void
   upscaleDisabled: boolean
-  onAddPhotos?: () => void
+  colourise: boolean
+  setColourise: (b: boolean) => void
+  colouriseAvailable: boolean
+  onInstallColourise: () => void
   outputSummary?: OutputSummary | null
   onEnableAi?: () => void
 }) {
@@ -163,14 +170,19 @@ function Sidebar({
         disabled={upscaleDisabled}
       />
 
-      {/* Pinned to the bottom: plain-language "what will happen" when a photo is
-          selected, otherwise how to add photos. */}
+      <div style={{ ...sectionLabel, padding: '14px 8px 8px' }}>Colourise</div>
+      <ColourisePanel
+        colourise={colourise}
+        setColourise={setColourise}
+        available={colouriseAvailable}
+        onInstall={onInstallColourise}
+        disabled={upscaleDisabled}
+      />
+
+      {/* Pinned to the bottom: plain-language "what will happen" to the selected
+          photo, else a passive drag hint (Add Photos lives in the toolbar). */}
       <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-        {outputSummary ? (
-          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
-        ) : (
-          <DropHintCard onAddPhotos={onAddPhotos} />
-        )}
+        {outputSummary ? <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} /> : <DropHintCard />}
       </div>
     </div>
   )
@@ -264,7 +276,7 @@ function Pill({ children, accent }: { children: React.ReactNode; accent?: boolea
   )
 }
 
-function DropHintCard({ onAddPhotos }: { onAddPhotos?: () => void }) {
+function DropHintCard() {
   return (
     <div
       style={{
@@ -283,24 +295,6 @@ function DropHintCard({ onAddPhotos }: { onAddPhotos?: () => void }) {
       <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
         Drag &amp; drop photos or a folder anywhere in the window.
       </div>
-      {onAddPhotos && (
-        <button
-          onClick={onAddPhotos}
-          style={{
-            marginTop: 2,
-            height: 28,
-            padding: '0 14px',
-            border: 'none',
-            borderRadius: 7,
-            background: '#1366d6',
-            color: '#fff',
-            font: '600 12px -apple-system',
-            cursor: 'pointer'
-          }}
-        >
-          Add Photos…
-        </button>
-      )}
     </div>
   )
 }

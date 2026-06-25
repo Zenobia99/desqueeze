@@ -585,7 +585,10 @@ export default function App() {
           maxFactor={s.maxFactor}
           setMaxFactor={s.setMaxFactor}
           upscaleDisabled={!s.hasSelection}
-          onAddPhotos={handleAddPhotos}
+          colourise={s.colourise}
+          setColourise={s.setColourise}
+          colouriseAvailable={caps.colourise}
+          onInstallColourise={installColourise}
           outputSummary={outputSummary}
           onEnableAi={() => s.setUpscale(true)}
         />
@@ -655,10 +658,6 @@ export default function App() {
           cropActive={!!s.crop}
           cropEditing={cropEditing}
           onCropEdit={onCropEdit}
-          colourise={s.colourise}
-          setColourise={s.setColourise}
-          colouriseAvailable={caps.colourise}
-          onInstallColourise={installColourise}
         />
       </div>
 
