@@ -1,6 +1,6 @@
 import React from 'react'
 import type { ViewMode } from '@shared/types'
-import { PlusIcon, ListIcon, GridIcon, SearchIcon, SlidersIcon } from './Icons'
+import { PlusIcon, ListIcon, GridIcon, SearchIcon } from './Icons'
 
 const btnChrome: React.CSSProperties = {
   border: '0.5px solid #d2d2d6',
@@ -138,20 +138,6 @@ function Toolbar({
           }}
         />
       </div>
-
-      <button
-        className="dq-no-drag"
-        style={{
-          ...btnChrome,
-          width: 30,
-          height: 30,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <SlidersIcon />
-      </button>
     </div>
   )
 }
