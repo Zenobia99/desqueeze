@@ -1,13 +1,6 @@
 import React from 'react'
 import type { ViewMode } from '@shared/types'
-import {
-  PlusIcon,
-  ChevronDown,
-  ListIcon,
-  GridIcon,
-  SearchIcon,
-  SlidersIcon
-} from './Icons'
+import { PlusIcon, ListIcon, GridIcon, SearchIcon, SlidersIcon } from './Icons'
 
 const btnChrome: React.CSSProperties = {
   border: '0.5px solid #d2d2d6',
@@ -92,23 +85,6 @@ function Toolbar({
       >
         <PlusIcon />
         Add Photos
-      </button>
-
-      <button
-        className="dq-no-drag"
-        style={{
-          ...btnChrome,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          height: 30,
-          padding: '0 11px 0 13px',
-          font: '500 13px -apple-system',
-          color: '#1d1d1f'
-        }}
-      >
-        Recents
-        <ChevronDown />
       </button>
 
       {/* Only this empty gap drags the window — every control stays clickable. */}
