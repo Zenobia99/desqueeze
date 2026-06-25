@@ -80,7 +80,9 @@ function Sidebar({
   colouriseAvailable,
   onInstallColourise,
   outputSummary,
-  onEnableAi
+  onEnableAi,
+  hasPhotos,
+  onAddPhotos
 }: {
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
@@ -114,6 +116,9 @@ function Sidebar({
   onInstallColourise: () => void
   outputSummary?: OutputSummary | null
   onEnableAi?: () => void
+  /** Whether the queue already has photos (drag card reappears after first add). */
+  hasPhotos: boolean
+  onAddPhotos: () => void
 }) {
   return (
     <div
@@ -179,11 +184,13 @@ function Sidebar({
         disabled={upscaleDisabled}
       />
 
-      {/* Pinned to the bottom: plain-language "what will happen" to the selected
-          photo. Nothing when there's no selection. */}
-      {outputSummary && (
-        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+      {/* Pinned to the bottom: the per-photo summary when something's selected,
+          plus a drop-to-add card once the queue has photos (fills the dead
+          space and stays as the persistent add affordance). */}
+      {(outputSummary || hasPhotos) && (
+        <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {outputSummary && <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />}
+          {hasPhotos && <DropHintCard onAddPhotos={onAddPhotos} />}
         </div>
       )}
     </div>
@@ -275,6 +282,47 @@ function Pill({ children, accent }: { children: React.ReactNode; accent?: boolea
     >
       {children}
     </span>
+  )
+}
+
+// Persistent add affordance once photos exist: drop here, or click to pick.
+function DropHintCard({ onAddPhotos }: { onAddPhotos: () => void }) {
+  return (
+    <button
+      className="dq-hover"
+      onClick={onAddPhotos}
+      title="Add more photos"
+      style={{
+        width: '100%',
+        padding: '14px 12px',
+        border: '1.5px dashed #cfcfd6',
+        borderRadius: 10,
+        background: 'transparent',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 7,
+        textAlign: 'center'
+      }}
+    >
+      <DropGlyph />
+      <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
+        Drag photos here, or click to add.
+      </div>
+    </button>
+  )
+}
+
+// A photo tile with a downward "drop here" arrow.
+function DropGlyph() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 52 52" fill="none" aria-hidden>
+      <rect x="6" y="10" width="40" height="30" rx="5" stroke="#c8c8cf" strokeWidth="2.5" />
+      <circle cx="17" cy="20" r="3.5" fill="#d4d4da" />
+      <path d="M9 35l11-11 8 8 6-5 9 9" stroke="#d4d4da" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M26 28v15m0 0l-5-5m5 5l5-5" stroke="#1366d6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

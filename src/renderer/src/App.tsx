@@ -590,6 +590,8 @@ export default function App() {
           onInstallColourise={installColourise}
           outputSummary={outputSummary}
           onEnableAi={() => s.setUpscale(true)}
+          hasPhotos={s.photos.length > 0}
+          onAddPhotos={handleAddPhotos}
         />
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
