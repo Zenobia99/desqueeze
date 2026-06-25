@@ -48,7 +48,7 @@ export interface SourceLoadResult {
 }
 
 /** Which Library source is active in the sidebar. */
-export type LibrarySource = 'recents' | 'favourites' | 'last-import' | 'albums'
+export type LibrarySource = 'favourites' | 'last-import' | 'albums'
 
 /**
  * A crop region in normalized [0,1] coordinates relative to the (un-rotated)

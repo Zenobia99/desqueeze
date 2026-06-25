@@ -30,7 +30,7 @@ const EXPORT_VERB: Record<ExportPhase, string> = {
 }
 
 export default function App() {
-  const [source, setSource] = useState<LibrarySource>('recents')
+  const [source, setSource] = useState<LibrarySource>('last-import')
   const [cache, setCache] = useState<SourceCache>({})
   const [imported, setImported] = useState<Photo[]>([])
   const [loadingSource, setLoadingSource] = useState<LibrarySource | null>(null)
@@ -68,15 +68,15 @@ export default function App() {
   )
 
   useEffect(() => {
-    loadSource('recents')
+    loadSource('last-import')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Imported files surface at the FRONT of Recents and Last Import (most recent
-  // first); they shouldn't appear under Favourites/Albums.
+  // Imported files surface at the FRONT of Last Import (newest first); they
+  // shouldn't appear under Favourites/Albums.
   const sourcePhotos = useMemo(() => {
     const base = cache[source] ?? []
-    if (source === 'recents' || source === 'last-import') return [...imported, ...base]
+    if (source === 'last-import') return [...imported, ...base]
     return base
   }, [cache, source, imported])
 

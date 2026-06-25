@@ -104,12 +104,9 @@ async function importFile(path: string): Promise<ImportedPhoto | null> {
       .resize({ width: 176, height: 120, fit: 'cover' })
       .png()
       .toBuffer()
-    // No dependency-free EXIF date parse, so use the file's modified time as the
-    // date proxy for imports (library assets carry their real creationDate).
-    const date = await fs
-      .stat(path)
-      .then((s) => Math.round(s.mtimeMs))
-      .catch(() => undefined)
+    // Date the import "now" so the freshest import sorts to the top of Last
+    // Import under Recent-first (library assets carry their real creationDate).
+    const date = Date.now()
     return {
       name: basename(path, extname(path)),
       w,
@@ -419,7 +416,6 @@ async function sharpResizeDisplay(
 
 // Map a sidebar Library source onto a PhotoKit query kind.
 const SOURCE_KIND: Record<LibrarySource, 'recents' | 'favorites' | 'recently-added'> = {
-  recents: 'recents',
   favourites: 'favorites',
   'last-import': 'recently-added',
   albums: 'recents'

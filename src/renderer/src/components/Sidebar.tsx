@@ -1,7 +1,7 @@
 import React from 'react'
 import type { LibrarySource, PresetGroup, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import photosIcon from '../assets/photos-icon.png'
-import { ClockIcon, PhotoMountainIcon } from './Icons'
+import { PhotoMountainIcon } from './Icons'
 import UpscalyPanel from './UpscalyPanel'
 import OutputSize from './OutputSize'
 
@@ -125,11 +125,10 @@ function Sidebar({
       <div style={{ ...sectionLabel, padding: '6px 8px 5px' }}>Library</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <LibRow
-          selected={activeSource === 'recents'}
-          onClick={() => onSelectSource('recents')}
-          icon={<ClockIcon color={activeSource === 'recents' ? '#fff' : '#8a8a8e'} />}
-          label="Recents"
-          count="248"
+          selected={activeSource === 'last-import'}
+          onClick={() => onSelectSource('last-import')}
+          icon={<PhotoMountainIcon color={activeSource === 'last-import' ? '#fff' : '#0a84ff'} />}
+          label="Last Import"
         />
         <LibRow
           selected={activeSource === 'favourites'}
@@ -144,14 +143,6 @@ function Sidebar({
             />
           }
           label="Favourites"
-          count="37"
-        />
-        <LibRow
-          selected={activeSource === 'last-import'}
-          onClick={() => onSelectSource('last-import')}
-          icon={<PhotoMountainIcon color={activeSource === 'last-import' ? '#fff' : '#0a84ff'} />}
-          label="Last Import"
-          count="12"
         />
       </div>
 
