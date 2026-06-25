@@ -121,6 +121,9 @@ export interface InspectorProps {
   /** Whether the crop editor is open. */
   cropEditing: boolean
   onCropEdit: () => void
+  /** Queue has photos → show the drop-to-add card in the panel's dead space. */
+  hasPhotos: boolean
+  onAddPhotos: () => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -133,7 +136,9 @@ function Inspector(p: InspectorProps) {
         background: '#f7f7f9',
         borderLeft: '0.5px solid #dcdce0',
         overflowY: 'auto',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
       {/* Disabled veil + hint when nothing is selected */}
@@ -362,6 +367,41 @@ function Inspector(p: InspectorProps) {
         )}
       </div>
       </fieldset>
+
+      {/* Persistent add affordance in the panel's stable dead space (sits above
+          the disabled veil so it works with or without a selection). */}
+      {p.hasPhotos && (
+        <button
+          className="dq-hover"
+          onClick={p.onAddPhotos}
+          title="Add more photos"
+          style={{
+            position: 'relative',
+            zIndex: 6,
+            margin: 'auto 18px 18px',
+            padding: '16px 12px',
+            border: '1.5px dashed #cfcfd6',
+            borderRadius: 10,
+            background: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            textAlign: 'center'
+          }}
+        >
+          <svg width="38" height="38" viewBox="0 0 52 52" fill="none" aria-hidden>
+            <rect x="6" y="10" width="40" height="30" rx="5" stroke="#c8c8cf" strokeWidth="2.5" />
+            <circle cx="17" cy="20" r="3.5" fill="#d4d4da" />
+            <path d="M9 35l11-11 8 8 6-5 9 9" stroke="#d4d4da" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M26 28v15m0 0l-5-5m5 5l5-5" stroke="#1366d6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
+            Drag photos here, or click to add.
+          </span>
+        </button>
+      )}
     </div>
   )
 }
