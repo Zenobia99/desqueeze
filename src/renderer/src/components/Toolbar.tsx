@@ -1,14 +1,6 @@
 import React from 'react'
 import type { ViewMode } from '@shared/types'
-import { PlusIcon, ListIcon, GridIcon, SearchIcon } from './Icons'
-
-const btnChrome: React.CSSProperties = {
-  border: '0.5px solid #d2d2d6',
-  borderRadius: 7,
-  background: 'linear-gradient(#ffffff,#f4f4f6)',
-  boxShadow: '0 1px 1.5px rgba(0,0,0,.05)',
-  cursor: 'pointer'
-}
+import { ListIcon, GridIcon, SearchIcon } from './Icons'
 
 function SegBtn({
   active,
@@ -46,14 +38,12 @@ function Toolbar({
   viewMode,
   setViewMode,
   search,
-  setSearch,
-  onAddPhotos
+  setSearch
 }: {
   viewMode: ViewMode
   setViewMode: (v: ViewMode) => void
   search: string
   setSearch: (s: string) => void
-  onAddPhotos: () => void
 }) {
   return (
     <div
@@ -69,24 +59,6 @@ function Toolbar({
         borderBottom: '0.5px solid #d8d8db'
       }}
     >
-      <button
-        className="dq-no-drag"
-        onClick={onAddPhotos}
-        style={{
-          ...btnChrome,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 7,
-          height: 30,
-          padding: '0 13px',
-          font: '500 13px -apple-system',
-          color: '#1d1d1f'
-        }}
-      >
-        <PlusIcon />
-        Add Photos
-      </button>
-
       {/* Only this empty gap drags the window — every control stays clickable. */}
       <div className="dq-drag" style={{ flex: 1, alignSelf: 'stretch' }} />
 

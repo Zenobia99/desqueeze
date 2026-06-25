@@ -554,7 +554,6 @@ export default function App() {
         setViewMode={s.setViewMode}
         search={search}
         setSearch={setSearch}
-        onAddPhotos={handleAddPhotos}
       />
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
