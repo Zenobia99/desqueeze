@@ -124,7 +124,8 @@ export default function App() {
     }
   }, [sourcePhotos])
 
-  const [destination, setDestination] = useState<string | null>(null)
+  // Remembered export folder (last used). Persists across launches.
+  const [destination, setDestination] = useState<string | null>(() => localStorage.getItem('dq.destination'))
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState<{
     done: number
@@ -463,7 +464,10 @@ export default function App() {
 
   const handleChooseDestination = useCallback(async () => {
     const dir = await window.desqueeze?.chooseDestination()
-    if (dir) setDestination(dir)
+    if (dir) {
+      setDestination(dir)
+      localStorage.setItem('dq.destination', dir) // remember as the default
+    }
   }, [])
 
   const handleExport = useCallback(async () => {
@@ -670,7 +674,6 @@ export default function App() {
         exportDisabled={s.selCount === 0}
         destinationLabel={destinationLabel}
         destinationHint={destinationHint}
-        destinationIsDefault={!destination}
         exporting={exporting}
         onChooseDestination={handleChooseDestination}
         onExport={handleExport}

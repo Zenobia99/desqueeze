@@ -17,7 +17,6 @@ function ExportBar({
   exportDisabled,
   destinationLabel,
   destinationHint,
-  destinationIsDefault,
   exporting,
   onChooseDestination,
   onExport
@@ -29,7 +28,6 @@ function ExportBar({
   exportDisabled: boolean
   destinationLabel: string
   destinationHint: string
-  destinationIsDefault: boolean
   exporting: boolean
   onChooseDestination: () => void
   onExport: () => void
@@ -38,48 +36,45 @@ function ExportBar({
   return (
     <div
       style={{
-        height: 48,
+        height: 44,
         flex: 'none',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 16px',
+        padding: '0 14px',
         background: 'linear-gradient(#fbfbfc,#f1f1f3)',
         borderTop: '0.5px solid #d8d8db',
         gap: 12
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ font: '600 13px -apple-system', color: '#1d1d1f' }}>{headline}</span>
-        <span style={{ font: '400 11.5px -apple-system', color: '#8a8a8e' }}>
-          Est. output {totalSize} · saves ~{savings}
+        <span style={{ font: '600 12.5px -apple-system', color: '#1d1d1f' }}>{headline}</span>
+        <span style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>
+          Est. {totalSize} · saves ~{savings}
         </span>
       </div>
       <div style={{ flex: 1 }} />
+      {/* Destination: click to pick a folder; the choice is remembered. */}
       <button
         onClick={onChooseDestination}
-        title={`Choose export folder — currently ${destinationHint}`}
+        title={`Export folder: ${destinationHint} — click to change`}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 7,
-          height: 34,
-          padding: '0 14px',
+          gap: 6,
+          height: 30,
+          padding: '0 11px',
           border: '0.5px solid #d2d2d6',
           borderRadius: 8,
           background: '#ffffff',
           cursor: 'pointer',
-          font: '600 13px -apple-system',
+          font: '500 12.5px -apple-system',
           color: '#1d1d1f'
         }}
       >
         <FolderIcon />
-        <span style={{ font: '400 11px -apple-system', color: '#9a9aa0' }}>Save to</span>
-        <span style={{ maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {destinationLabel}
         </span>
-        {destinationIsDefault && (
-          <span style={{ font: '400 10.5px -apple-system', color: '#b0b0b5' }}>(default)</span>
-        )}
         <ChevronDown />
       </button>
       <button
@@ -89,9 +84,9 @@ function ExportBar({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          height: 34,
-          padding: '0 20px',
+          gap: 6,
+          height: 30,
+          padding: '0 13px',
           border: 'none',
           borderRadius: 8,
           background: disabled
@@ -99,16 +94,12 @@ function ExportBar({
             : 'linear-gradient(180deg,#4a91f5,#1366d6)',
           boxShadow: disabled ? 'none' : 'inset 0 1px 0 rgba(255,255,255,.4), 0 1px 3px rgba(19,102,214,.45)',
           cursor: exporting ? 'progress' : exportDisabled ? 'not-allowed' : 'pointer',
-          font: '600 13.5px -apple-system',
+          font: '600 13px -apple-system',
           color: '#fff'
         }}
       >
         <DownloadTray />
-        {exporting
-          ? 'Exporting…'
-          : exportCount === 0
-            ? 'Select Photos to Export'
-            : `Export ${exportCount} ${exportCount === 1 ? 'Photo' : 'Photos'}`}
+        {exporting ? 'Exporting…' : exportCount === 0 ? 'Export' : `Export ${exportCount}`}
       </button>
     </div>
   )
