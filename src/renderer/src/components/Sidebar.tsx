@@ -180,10 +180,12 @@ function Sidebar({
       />
 
       {/* Pinned to the bottom: plain-language "what will happen" to the selected
-          photo, else a passive drag hint (Add Photos lives in the toolbar). */}
-      <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-        {outputSummary ? <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} /> : <DropHintCard />}
-      </div>
+          photo. Nothing when there's no selection. */}
+      {outputSummary && (
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+        </div>
+      )}
     </div>
   )
 }
@@ -273,41 +275,6 @@ function Pill({ children, accent }: { children: React.ReactNode; accent?: boolea
     >
       {children}
     </span>
-  )
-}
-
-function DropHintCard() {
-  return (
-    <div
-      style={{
-        width: '100%',
-        padding: '16px 12px',
-        border: '1.5px dashed #cfcfd6',
-        borderRadius: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-        textAlign: 'center'
-      }}
-    >
-      <DropGlyph />
-      <div style={{ font: '400 11.5px -apple-system', color: '#8a8a90', lineHeight: 1.45 }}>
-        Drag &amp; drop photos or a folder anywhere in the window.
-      </div>
-    </div>
-  )
-}
-
-// Empty-state glyph: a photo tile with a downward "drop here" arrow.
-function DropGlyph() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 52 52" fill="none" aria-hidden>
-      <rect x="6" y="10" width="40" height="30" rx="5" stroke="#c8c8cf" strokeWidth="2.5" />
-      <circle cx="17" cy="20" r="3.5" fill="#d4d4da" />
-      <path d="M9 35l11-11 8 8 6-5 9 9" stroke="#d4d4da" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M26 28v15m0 0l-5-5m5 5l5-5" stroke="#1366d6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   )
 }
 
