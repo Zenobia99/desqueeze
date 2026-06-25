@@ -175,24 +175,28 @@ function Sidebar({
         disabled={upscaleDisabled}
       />
 
-      <div style={{ ...sectionLabel, padding: '14px 8px 8px' }}>Colourise</div>
-      <ColourisePanel
-        colourise={colourise}
-        setColourise={setColourise}
-        available={colouriseAvailable}
-        onInstall={onInstallColourise}
-        disabled={upscaleDisabled}
-      />
-
-      {/* Pinned to the bottom: the per-photo summary when something's selected,
-          plus a drop-to-add card once the queue has photos (fills the dead
-          space and stays as the persistent add affordance). */}
-      {(outputSummary || hasPhotos) && (
-        <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {outputSummary && <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />}
-          {hasPhotos && <DropHintCard onAddPhotos={onAddPhotos} />}
-        </div>
-      )}
+      {/* Bottom group: per-photo summary, the Colourise engine, then the
+          drop-to-add card — pinned to the bottom, filling the dead space. */}
+      <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', flexDirection: 'column' }}>
+        {outputSummary && (
+          <div style={{ marginBottom: 14 }}>
+            <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+          </div>
+        )}
+        <div style={{ ...sectionLabel, padding: '0 8px 8px' }}>Colourise</div>
+        <ColourisePanel
+          colourise={colourise}
+          setColourise={setColourise}
+          available={colouriseAvailable}
+          onInstall={onInstallColourise}
+          disabled={upscaleDisabled}
+        />
+        {hasPhotos && (
+          <div style={{ marginTop: 14 }}>
+            <DropHintCard onAddPhotos={onAddPhotos} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
