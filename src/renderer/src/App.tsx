@@ -39,6 +39,9 @@ export default function App() {
 
   const loadSource = useCallback(
     async (src: LibrarySource) => {
+      // Last Import is local-only (the files you import into the app) — nothing
+      // to fetch from the Photos library.
+      if (src === 'last-import') return
       if (!window.desqueeze || cache[src]) return
       setLoadingSource(src)
       setErrorMsg(null)
@@ -67,17 +70,14 @@ export default function App() {
     [cache]
   )
 
-  useEffect(() => {
-    loadSource('last-import')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Nothing to pre-load: the app opens on Last Import (local imports). Favourites
+  // loads from the Photos library when selected.
 
-  // Imported files surface at the FRONT of Last Import (newest first); they
-  // shouldn't appear under Favourites/Albums.
+  // Last Import is exactly the files imported into the app (newest first).
+  // Favourites/Albums come from the Photos library cache.
   const sourcePhotos = useMemo(() => {
-    const base = cache[source] ?? []
-    if (source === 'last-import') return [...imported, ...base]
-    return base
+    if (source === 'last-import') return imported
+    return cache[source] ?? []
   }, [cache, source, imported])
 
   const s = useDesqueeze(sourcePhotos)
@@ -395,7 +395,6 @@ export default function App() {
         s.seedSourceSizes(withIds)
         setImported((prev) => [...withIds, ...prev])
         setSource('last-import')
-        loadSource('last-import')
       }
       const dup = items.length - withIds.length
       showToast(
@@ -404,7 +403,7 @@ export default function App() {
           : 'Those photos are already in the queue'
       )
     },
-    [imported, showToast, loadSource, s]
+    [imported, showToast, s]
   )
 
   const handleAddPhotos = useCallback(async () => {
@@ -528,7 +527,10 @@ export default function App() {
   const emptyMessage = isLoading
     ? 'Loading your photos…'
     : visibleRows.length === 0
-      ? errorMsg ?? 'No photos to show'
+      ? errorMsg ??
+        (source === 'last-import'
+          ? 'No photos yet — drag & drop or use Add Photos to import.'
+          : 'No photos to show')
       : undefined
 
   return (
