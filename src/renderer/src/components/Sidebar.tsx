@@ -3,7 +3,6 @@ import type { LibrarySource, PresetGroup, UpscaleModel, UpscaleSpeed } from '@sh
 import photosIcon from '../assets/photos-icon.png'
 import { PhotoMountainIcon } from './Icons'
 import UpscalyPanel from './UpscalyPanel'
-import ColourisePanel from './ColourisePanel'
 import OutputSize from './OutputSize'
 
 const sectionLabel: React.CSSProperties = {
@@ -75,10 +74,6 @@ function Sidebar({
   maxFactor,
   setMaxFactor,
   upscaleDisabled,
-  colourise,
-  setColourise,
-  colouriseAvailable,
-  onInstallColourise,
   outputSummary,
   onEnableAi
 }: {
@@ -108,10 +103,6 @@ function Sidebar({
   maxFactor: number
   setMaxFactor: (n: number) => void
   upscaleDisabled: boolean
-  colourise: boolean
-  setColourise: (b: boolean) => void
-  colouriseAvailable: boolean
-  onInstallColourise: () => void
   outputSummary?: OutputSummary | null
   onEnableAi?: () => void
 }) {
@@ -172,21 +163,11 @@ function Sidebar({
 
       {/* Bottom group: per-photo summary, then the Colourise engine — pinned to
           the bottom. (Add/drag lives in the right panel's stable dead space.) */}
-      <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', flexDirection: 'column' }}>
-        {outputSummary && (
-          <div style={{ marginBottom: 14 }}>
-            <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
-          </div>
-        )}
-        <div style={{ ...sectionLabel, padding: '0 8px 8px' }}>Colourise</div>
-        <ColourisePanel
-          colourise={colourise}
-          setColourise={setColourise}
-          available={colouriseAvailable}
-          onInstall={onInstallColourise}
-          disabled={upscaleDisabled}
-        />
-      </div>
+      {outputSummary && (
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+        </div>
+      )}
     </div>
   )
 }

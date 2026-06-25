@@ -27,6 +27,8 @@ export function useDesqueeze(photos: Photo[]) {
   }, [])
   const selectAll = useCallback(() => setSelected(photos.map((p) => p.id)), [photos])
   const clearSelection = useCallback(() => setSelected([]), [])
+  /** Replace the selection with a single photo (e.g. auto-select on import). */
+  const selectOne = useCallback((id: number) => setSelected([id]), [])
 
   // Apply a per-item update to every selected photo (no-op without a selection).
   // A single, pure setOverrides call — no nested setState — so it behaves
@@ -216,6 +218,7 @@ export function useDesqueeze(photos: Photo[]) {
     toggle,
     selectAll,
     clearSelection,
+    selectOne,
     effectiveFor,
     // representative settings (what the inspector shows)
     format: repr.format,

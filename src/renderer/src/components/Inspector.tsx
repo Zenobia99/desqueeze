@@ -1,5 +1,6 @@
 import React from 'react'
 import type { OutputFormat, ResizeMode } from '@shared/types'
+import ColourisePanel from './ColourisePanel'
 import {
   CropIcon,
   RotateCCW,
@@ -124,6 +125,11 @@ export interface InspectorProps {
   /** Queue has photos → show the drop-to-add card in the panel's dead space. */
   hasPhotos: boolean
   onAddPhotos: () => void
+  /** Colourise (B&W → colour) toggle + whether the on-device model is installed. */
+  colourise: boolean
+  setColourise: (b: boolean) => void
+  colouriseAvailable: boolean
+  onInstallColourise: () => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -365,6 +371,17 @@ function Inspector(p: InspectorProps) {
             Quality is auto-tuned per image to stay under {p.maxSizeKb} KB (lossy formats).
           </div>
         )}
+      </div>
+
+      {/* Colourise (on-device Core ML) */}
+      <div style={{ padding: '0 18px 16px' }}>
+        <div style={groupLabel}>Colourise</div>
+        <ColourisePanel
+          colourise={p.colourise}
+          setColourise={p.setColourise}
+          available={p.colouriseAvailable}
+          onInstall={p.onInstallColourise}
+        />
       </div>
       </fieldset>
 

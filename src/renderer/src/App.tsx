@@ -395,6 +395,9 @@ export default function App() {
         s.seedSourceSizes(withIds)
         setImported((prev) => [...withIds, ...prev])
         setSource('last-import')
+        // First import (nothing selected yet) → select the first asset so the
+        // left pane (source size, summary) and the right pane populate at once.
+        if (!s.hasSelection) s.selectOne(withIds[0].id)
       }
       const dup = items.length - withIds.length
       showToast(
@@ -584,10 +587,6 @@ export default function App() {
           maxFactor={s.maxFactor}
           setMaxFactor={s.setMaxFactor}
           upscaleDisabled={!s.hasSelection}
-          colourise={s.colourise}
-          setColourise={s.setColourise}
-          colouriseAvailable={caps.colourise}
-          onInstallColourise={installColourise}
           outputSummary={outputSummary}
           onEnableAi={() => s.setUpscale(true)}
         />
@@ -659,6 +658,10 @@ export default function App() {
           onCropEdit={onCropEdit}
           hasPhotos={s.photos.length > 0}
           onAddPhotos={handleAddPhotos}
+          colourise={s.colourise}
+          setColourise={s.setColourise}
+          colouriseAvailable={caps.colourise}
+          onInstallColourise={installColourise}
         />
       </div>
 
