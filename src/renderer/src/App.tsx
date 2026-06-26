@@ -170,10 +170,6 @@ export default function App() {
     return computeTotals(rows)
   }, [s.rows, s.selected, s.selCount])
 
-  // The destination button is a folder picker. Show the chosen folder's name, or
-  // a clear call to action when none is set (the default folder is in the hint).
-  const destinationLabel = destination ? destination.split('/').pop() || 'Folder' : 'Choose folder…'
-  const destinationHint = destination ?? 'defaults to ~/Downloads/Desqueeze'
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -468,14 +464,6 @@ export default function App() {
     }
   }, [])
 
-  const handleChooseDestination = useCallback(async () => {
-    const dir = await window.desqueeze?.chooseDestination()
-    if (dir) {
-      setDestination(dir)
-      localStorage.setItem('dq.destination', dir) // remember as the default
-    }
-  }, [])
-
   const handleExport = useCallback(async () => {
     if (exporting || !window.desqueeze) return
     // Export the selected photos only.
@@ -484,6 +472,11 @@ export default function App() {
       showToast('Select photos to export')
       return
     }
+    // One action: pick the folder (defaulting to the last used), then export.
+    const dir = await window.desqueeze.chooseDestination(destination ?? undefined)
+    if (!dir) return // cancelled
+    setDestination(dir)
+    localStorage.setItem('dq.destination', dir) // remember as the default
     setExporting(true)
     setToast(null)
     try {
@@ -515,7 +508,7 @@ export default function App() {
         setProgress({ done: p.index, total: p.total, name: p.name, phase: p.phase })
       )
       try {
-        const res = await window.desqueeze.exportPhotos({ items, destination: destination ?? '' })
+        const res = await window.desqueeze.exportPhotos({ items, destination: dir })
         const ok = res.items.filter((i) => i.ok).length
         const failed = res.items.length - ok
         showToast(
@@ -677,10 +670,7 @@ export default function App() {
         totalSize={exportTotals.totalSize}
         savings={exportTotals.savings}
         exportDisabled={s.selCount === 0}
-        destinationLabel={destinationLabel}
-        destinationHint={destinationHint}
         exporting={exporting}
-        onChooseDestination={handleChooseDestination}
         onExport={handleExport}
       />
 

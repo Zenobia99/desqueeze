@@ -511,14 +511,18 @@ export function registerIpc(): void {
     }
   )
 
-  ipcMain.handle('dialog:chooseDestination', async (): Promise<string | null> => {
-    const res = await dialog.showOpenDialog({
-      title: 'Choose export destination',
-      properties: ['openDirectory', 'createDirectory'],
-      buttonLabel: 'Choose'
-    })
-    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
-  })
+  ipcMain.handle(
+    'dialog:chooseDestination',
+    async (_e, defaultPath?: string): Promise<string | null> => {
+      const res = await dialog.showOpenDialog({
+        title: 'Export to…',
+        properties: ['openDirectory', 'createDirectory'],
+        buttonLabel: 'Export Here',
+        ...(defaultPath ? { defaultPath } : {})
+      })
+      return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+    }
+  )
 
   ipcMain.handle('export:run', async (e, req: ExportRequest): Promise<ExportResult> => {
     return runExport(req, (p: ExportProgress) => {

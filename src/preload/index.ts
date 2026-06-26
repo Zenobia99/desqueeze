@@ -33,8 +33,8 @@ const api = {
     ipcRenderer.invoke('photos:measure', items),
   /** Resolve a dropped File's absolute path (Electron webUtils). */
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
-  chooseDestination: (): Promise<string | null> =>
-    ipcRenderer.invoke('dialog:chooseDestination'),
+  chooseDestination: (defaultPath?: string): Promise<string | null> =>
+    ipcRenderer.invoke('dialog:chooseDestination', defaultPath),
   exportPhotos: (req: ExportRequest): Promise<ExportResult> =>
     ipcRenderer.invoke('export:run', req),
   /** Subscribe to per-item export progress; returns an unsubscribe fn. */
