@@ -164,10 +164,10 @@ export default function App() {
     return computeTotals(rows)
   }, [s.rows, s.selected, s.selCount])
 
-  // The destination button is a folder picker; until one is chosen, exports go
-  // to ~/Downloads/Desqueeze Export, so show that rather than a verb-like label.
-  const destinationLabel = destination ? destination.split('/').pop() || 'Desqueeze Export' : 'Desqueeze Export'
-  const destinationHint = destination ?? '~/Downloads/Desqueeze Export (default)'
+  // The destination button is a folder picker. Show the chosen folder's name, or
+  // a clear call to action when none is set (the default folder is in the hint).
+  const destinationLabel = destination ? destination.split('/').pop() || 'Folder' : 'Choose folder…'
+  const destinationHint = destination ?? 'defaults to ~/Downloads/Desqueeze Export'
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -670,7 +670,6 @@ export default function App() {
         }
         totalSize={exportTotals.totalSize}
         savings={exportTotals.savings}
-        exportCount={s.selCount}
         exportDisabled={s.selCount === 0}
         destinationLabel={destinationLabel}
         destinationHint={destinationHint}

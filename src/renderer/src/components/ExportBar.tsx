@@ -13,7 +13,6 @@ function ExportBar({
   headline,
   totalSize,
   savings,
-  exportCount,
   exportDisabled,
   destinationLabel,
   destinationHint,
@@ -24,7 +23,6 @@ function ExportBar({
   headline: string
   totalSize: string
   savings: string
-  exportCount: number
   exportDisabled: boolean
   destinationLabel: string
   destinationHint: string
@@ -99,7 +97,7 @@ function ExportBar({
         }}
       >
         <DownloadTray />
-        {exporting ? 'Exporting…' : exportCount === 0 ? 'Export' : `Export ${exportCount}`}
+        {exporting ? 'Exporting…' : 'Export'}
       </button>
     </div>
   )
