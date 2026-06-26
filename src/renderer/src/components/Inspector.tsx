@@ -268,19 +268,18 @@ function Inspector(p: InspectorProps) {
                 style={{
                   flex: 1,
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
-                  height: 54,
-                  borderRadius: 9,
+                  gap: 5,
+                  height: 38,
+                  borderRadius: 8,
                   cursor: 'pointer',
                   border: `0.5px solid ${a ? '#1473e6' : '#d8d8dc'}`,
                   background: a ? 'rgba(20,115,230,.08)' : '#ffffff',
                   color
                 }}
               >
-                <Icon size={18} color={color} />
+                <Icon size={15} color={color} />
                 <span style={{ font: '500 11.5px -apple-system' }}>{name}</span>
               </button>
             )
