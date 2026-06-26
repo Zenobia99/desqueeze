@@ -36,7 +36,6 @@ function ExportBar({
           Est. {totalSize} · saves ~{savings}
         </span>
       </div>
-      <div style={{ flex: 1 }} />
       {/* One action: pick the destination folder, then export to it. */}
       <button
         onClick={onExport}
