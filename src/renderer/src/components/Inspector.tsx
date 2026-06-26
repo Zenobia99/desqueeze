@@ -415,7 +415,8 @@ function Inspector(p: InspectorProps) {
           available={p.colouriseAvailable}
           onInstall={p.onInstallColourise}
         />
-        <label
+        <div
+          onClick={() => p.setGrayscale(!p.grayscale)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -433,15 +434,13 @@ function Inspector(p: InspectorProps) {
             <div style={{ font: '600 13px -apple-system', color: '#1d1d1f' }}>Black &amp; White</div>
             <div style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>True luminance (linear-light)</div>
           </div>
-          <button
-            onClick={() => p.setGrayscale(!p.grayscale)}
+          {/* presentational switch — the row handles the click */}
+          <div
             style={{
               width: 40,
               height: 24,
               flex: 'none',
-              border: 'none',
               borderRadius: 12,
-              cursor: 'pointer',
               padding: 2,
               display: 'flex',
               alignItems: 'center',
@@ -450,8 +449,8 @@ function Inspector(p: InspectorProps) {
             }}
           >
             <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
-          </button>
-        </label>
+          </div>
+        </div>
         {p.grayscale && (
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
             {TONES.map((t) => {
