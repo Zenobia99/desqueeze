@@ -483,6 +483,9 @@ export function registerIpc(): void {
     return { colourise: colourise.available() }
   })
 
+  // Default export folder for a fresh install (no folder chosen yet).
+  ipcMain.handle('paths:defaultDestination', async (): Promise<string> => app.getPath('downloads'))
+
   // Let the user pick a Core ML colourise model; copy it into the model folder.
   ipcMain.handle(
     'colourise:install',

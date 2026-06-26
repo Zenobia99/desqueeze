@@ -19,6 +19,8 @@ const api = {
   preview: (req: PreviewRequest): Promise<PreviewResult> => ipcRenderer.invoke('photos:preview', req),
   /** Query which optional on-device engines are available (e.g. colourise). */
   capabilities: (): Promise<Capabilities> => ipcRenderer.invoke('caps:get'),
+  /** Default export folder for a fresh install (no folder picked yet). */
+  defaultDestination: (): Promise<string> => ipcRenderer.invoke('paths:defaultDestination'),
   /** Pick & install a Core ML colourise model; resolves with new availability. */
   installColouriseModel: (): Promise<{ ok: boolean; available: boolean; error?: string }> =>
     ipcRenderer.invoke('colourise:install'),

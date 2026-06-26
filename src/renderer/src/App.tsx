@@ -124,8 +124,14 @@ export default function App() {
     }
   }, [sourcePhotos])
 
-  // Remembered export folder (last used). Persists across launches.
+  // Remembered export folder (last used). Persists across launches; on a fresh
+  // install with none saved, it's pre-seeded to Downloads (see effect below).
   const [destination, setDestination] = useState<string | null>(() => localStorage.getItem('dq.destination'))
+  useEffect(() => {
+    if (destination) return
+    window.desqueeze?.defaultDestination().then(setDestination).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState<{
     done: number
