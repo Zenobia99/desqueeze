@@ -173,7 +173,7 @@ export default function App() {
   // The destination button is a folder picker. Show the chosen folder's name, or
   // a clear call to action when none is set (the default folder is in the hint).
   const destinationLabel = destination ? destination.split('/').pop() || 'Folder' : 'Choose folder…'
-  const destinationHint = destination ?? 'defaults to ~/Downloads/Desqueeze Export'
+  const destinationHint = destination ?? 'defaults to ~/Downloads/Desqueeze'
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)

@@ -132,7 +132,7 @@ export async function runExport(
   req: ExportRequest,
   onProgress?: (p: ExportProgress) => void
 ): Promise<ExportResult> {
-  const destination = req.destination || join(app.getPath('downloads'), 'Desqueeze Export')
+  const destination = req.destination || join(app.getPath('downloads'), 'Desqueeze')
   await fs.mkdir(destination, { recursive: true })
 
   const results: ExportItemResult[] = []
@@ -483,8 +483,11 @@ export function registerIpc(): void {
     return { colourise: colourise.available() }
   })
 
-  // Default export folder for a fresh install (no folder chosen yet).
-  ipcMain.handle('paths:defaultDestination', async (): Promise<string> => app.getPath('downloads'))
+  // Default export folder for a fresh install: a dedicated subfolder so exports
+  // stay grouped rather than cluttering Downloads.
+  ipcMain.handle('paths:defaultDestination', async (): Promise<string> =>
+    join(app.getPath('downloads'), 'Desqueeze')
+  )
 
   // Let the user pick a Core ML colourise model; copy it into the model folder.
   ipcMain.handle(
