@@ -228,7 +228,7 @@ function Inspector(p: InspectorProps) {
       {/* Format */}
       <div style={{ padding: '0 18px 14px' }}>
         <div style={groupLabel}>Format</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+        <div style={{ display: 'flex', gap: 5 }}>
           {FORMATS.map((f) => {
             const a = p.format === f
             return (
@@ -236,12 +236,13 @@ function Inspector(p: InspectorProps) {
                 key={f}
                 onClick={() => p.setFormat(f)}
                 style={{
-                  flex: 'none',
+                  flex: 1,
+                  minWidth: 0,
                   height: 30,
-                  padding: '0 12px',
+                  padding: '0 4px',
                   borderRadius: 7,
                   cursor: 'pointer',
-                  font: '600 12px -apple-system',
+                  font: '600 11.5px -apple-system',
                   border: `0.5px solid ${a ? '#1473e6' : '#d8d8dc'}`,
                   background: a ? '#1473e6' : '#ffffff',
                   color: a ? '#fff' : '#3a3a3f'
