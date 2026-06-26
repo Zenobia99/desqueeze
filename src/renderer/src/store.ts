@@ -6,7 +6,7 @@ import type { ItemSettings, Photo, Preset, ViewMode } from '@shared/types'
 type Overrides = Record<number, ItemSettings>
 
 export function useDesqueeze(photos: Photo[]) {
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [selected, setSelected] = useState<number[]>([])
   // Latest selection, readable inside other state updaters without nesting
   // setState calls (which double-fires under StrictMode and breaks toggles).

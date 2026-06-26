@@ -124,6 +124,17 @@ export default function App() {
     }
   }, [sourcePhotos])
 
+  // On first load, auto-select the first photo so the preview stage is populated
+  // (the app looks alive rather than an empty canvas). Once only — never fights a
+  // later manual deselect.
+  const didAutoSelect = useRef(false)
+  useEffect(() => {
+    if (didAutoSelect.current || sourcePhotos.length === 0) return
+    if (s.selected.length === 0) s.selectOne(sourcePhotos[0].id)
+    didAutoSelect.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourcePhotos])
+
   // Remembered export folder (last used). Persists across launches; on a fresh
   // install with none saved, it's pre-seeded to Downloads (see effect below).
   const [destination, setDestination] = useState<string | null>(() => localStorage.getItem('dq.destination'))
