@@ -59,7 +59,15 @@ export function useDesqueeze(photos: Photo[]) {
   const setFit = useCallback((fit: ItemSettings['fit']) => applyPatch({ fit }), [applyPatch])
   const setQuality = useCallback((quality: number) => applyPatch({ quality }), [applyPatch])
   const setUpscale = useCallback((upscale: boolean) => applyPatch({ upscale }), [applyPatch])
-  const setColourise = useCallback((colourise: boolean) => applyPatch({ colourise }), [applyPatch])
+  // Colourise and grayscale are opposites — enabling one clears the other.
+  const setColourise = useCallback(
+    (colourise: boolean) => applyPatch(colourise ? { colourise: true, grayscale: false } : { colourise: false }),
+    [applyPatch]
+  )
+  const setGrayscale = useCallback(
+    (grayscale: boolean) => applyPatch(grayscale ? { grayscale: true, colourise: false } : { grayscale: false }),
+    [applyPatch]
+  )
   const setUpModel = useCallback(
     (upModel: ItemSettings['upModel']) => applyPatch({ upModel }),
     [applyPatch]
@@ -226,6 +234,7 @@ export function useDesqueeze(photos: Photo[]) {
     quality: repr.quality,
     upscale: repr.upscale,
     colourise: repr.colourise,
+    grayscale: repr.grayscale,
     upModel: repr.upModel,
     upSpeed: repr.upSpeed,
     maxFactor: repr.maxFactor,
@@ -248,6 +257,7 @@ export function useDesqueeze(photos: Photo[]) {
     setQuality,
     setUpscale,
     setColourise,
+    setGrayscale,
     setUpModel,
     setUpSpeed,
     setMaxFactor,

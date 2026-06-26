@@ -50,6 +50,8 @@ export interface ProcessOptions {
   rotation?: number
   /** Mirror horizontally. */
   flipH?: boolean
+  /** Convert to black & white (greyscale). */
+  grayscale?: boolean
   /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
   maxSizeKb?: number
 }
@@ -119,6 +121,9 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
 
   // Dropping alpha for a no-alpha format → flatten transparent pixels to white.
   if (!keepAlpha && srcHasAlpha) pipeline = pipeline.flatten({ background: WHITE_BG })
+
+  // Black & white conversion (the inverse of colourise).
+  if (opts.grayscale) pipeline = pipeline.greyscale()
 
   const q = Math.max(1, Math.min(100, Math.round(opts.quality)))
 

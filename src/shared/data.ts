@@ -129,6 +129,7 @@ export const DEFAULT_SETTINGS: ItemSettings = {
   // is larger than the source, so this is a "use AI for enlargements" opt-out.
   upscale: true,
   colourise: false,
+  grayscale: false,
   upModel: 'Standard',
   upSpeed: 'Balanced',
   maxFactor: 4,

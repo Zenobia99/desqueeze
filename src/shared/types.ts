@@ -78,6 +78,8 @@ export interface ItemSettings {
   upscale: boolean
   /** Colourise (B&W → colour) via the on-device Core ML engine. */
   colourise: boolean
+  /** Convert to black & white (greyscale). Mutually exclusive with colourise. */
+  grayscale: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed: UpscaleSpeed
@@ -132,6 +134,8 @@ export interface ExportItemRequest {
   needsUpscale: boolean
   /** Colourise (B&W → colour) via the on-device Core ML engine. */
   colourise?: boolean
+  /** Convert to black & white (greyscale). */
+  grayscale?: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed
@@ -194,6 +198,8 @@ export interface PreviewRequest {
   needsUpscale: boolean
   /** Colourise (B&W → colour) via the on-device Core ML engine. */
   colourise?: boolean
+  /** Convert to black & white (greyscale). */
+  grayscale?: boolean
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed

@@ -157,6 +157,9 @@ export interface InspectorProps {
   setColourise: (b: boolean) => void
   colouriseAvailable: boolean
   onInstallColourise: () => void
+  /** Convert to true (gamma-correct) black & white. */
+  grayscale: boolean
+  setGrayscale: (b: boolean) => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -393,15 +396,52 @@ function Inspector(p: InspectorProps) {
         )}
       </div>
 
-      {/* Colourise (on-device Core ML) */}
+      {/* Colour: on-device colourise + true black & white */}
       <div style={{ padding: '0 18px 16px' }}>
-        <div style={groupLabel}>Colourise</div>
+        <div style={groupLabel}>Colour</div>
         <ColourisePanel
           colourise={p.colourise}
           setColourise={p.setColourise}
           available={p.colouriseAvailable}
           onInstall={p.onInstallColourise}
         />
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            marginTop: 8,
+            padding: '9px 12px',
+            background: p.grayscale ? '#f1f1f3' : '#ffffff',
+            border: '0.5px solid #dcdce0',
+            borderRadius: 10,
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: '600 13px -apple-system', color: '#1d1d1f' }}>Black &amp; White</div>
+            <div style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>True luminance (linear-light)</div>
+          </div>
+          <button
+            onClick={() => p.setGrayscale(!p.grayscale)}
+            style={{
+              width: 40,
+              height: 24,
+              flex: 'none',
+              border: 'none',
+              borderRadius: 12,
+              cursor: 'pointer',
+              padding: 2,
+              display: 'flex',
+              alignItems: 'center',
+              background: p.grayscale ? '#34c759' : '#d4d4d9',
+              justifyContent: p.grayscale ? 'flex-end' : 'flex-start'
+            }}
+          >
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+          </button>
+        </label>
       </div>
         </fieldset>
       </div>

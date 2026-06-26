@@ -216,6 +216,7 @@ export default function App() {
       crop: e.crop,
       needsUpscale: canUpscale,
       colourise: e.colourise,
+      grayscale: e.grayscale,
       upModel: e.upModel,
       upSpeed: e.upSpeed,
       maxFactor: e.maxFactor,
@@ -497,6 +498,7 @@ export default function App() {
           crop: e.crop,
           needsUpscale: r.upscale && e.upscale,
           colourise: e.colourise,
+          grayscale: e.grayscale,
           upModel: e.upModel,
           upSpeed: e.upSpeed,
           maxFactor: e.maxFactor,
@@ -658,6 +660,8 @@ export default function App() {
           setColourise={s.setColourise}
           colouriseAvailable={caps.colourise}
           onInstallColourise={installColourise}
+          grayscale={s.grayscale}
+          setGrayscale={s.setGrayscale}
         />
       </div>
 
