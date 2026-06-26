@@ -225,14 +225,19 @@ function PreviewPane({
         </span>
       )}
 
-      {/* Caption */}
+      {/* Caption — centered along the bottom edge so it sits in the margin and
+          stays clear of the image subject. */}
       <div
         style={{
           position: 'absolute',
-          left: 14,
-          bottom: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          bottom: 8,
+          maxWidth: 'calc(100% - 24px)',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
           gap: 8,
           padding: '5px 10px',
           borderRadius: 7,
@@ -346,7 +351,7 @@ function PreviewPane({
           style={{
             position: 'absolute',
             right: 14,
-            bottom: 12,
+            top: 12,
             display: 'flex',
             alignItems: 'center',
             gap: 7,
