@@ -4,6 +4,9 @@ export type OutputFormat = 'Auto' | 'PNG' | 'JPEG' | 'TIFF' | 'HEIC' | 'WebP'
 export type ResizeMode = 'Fill' | 'Fit' | 'Stretch'
 export type ViewMode = 'list' | 'grid'
 export type UpscaleModel = 'Standard' | 'Photo' | 'Art'
+/** Mono toning options (luminance-preserving tints over a B&W base). */
+export type MonoTone = 'neutral' | 'sepia' | 'selenium' | 'cyanotype'
+
 /** AI upscale quality/speed trade-off (caps the pixels fed to the model). */
 export type UpscaleSpeed = 'Fastest' | 'Balanced' | 'Max'
 
@@ -80,6 +83,8 @@ export interface ItemSettings {
   colourise: boolean
   /** Convert to black & white (greyscale). Mutually exclusive with colourise. */
   grayscale: boolean
+  /** Mono tone when grayscale is on (neutral B&W or a luminance-preserving tint). */
+  tone: MonoTone
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed: UpscaleSpeed
@@ -136,6 +141,8 @@ export interface ExportItemRequest {
   colourise?: boolean
   /** Convert to black & white (greyscale). */
   grayscale?: boolean
+  /** Mono tone when grayscale is on. */
+  tone?: MonoTone
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed
@@ -200,6 +207,8 @@ export interface PreviewRequest {
   colourise?: boolean
   /** Convert to black & white (greyscale). */
   grayscale?: boolean
+  /** Mono tone when grayscale is on. */
+  tone?: MonoTone
   upModel: UpscaleModel
   /** AI upscale quality/speed trade-off. */
   upSpeed?: UpscaleSpeed

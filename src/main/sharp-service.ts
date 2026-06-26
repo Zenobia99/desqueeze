@@ -1,5 +1,12 @@
 import sharp from 'sharp'
-import type { CropRect, OutputFormat, ResizeMode } from '@shared/types'
+import type { CropRect, MonoTone, OutputFormat, ResizeMode } from '@shared/types'
+
+// Luminance-preserving tints for toned mono (applied via sharp .tint()).
+const TONE_TINT: Record<Exclude<MonoTone, 'neutral'>, { r: number; g: number; b: number }> = {
+  sepia: { r: 165, g: 120, b: 70 },
+  selenium: { r: 120, g: 110, b: 150 },
+  cyanotype: { r: 50, g: 95, b: 160 }
+}
 
 /**
  * Bake EXIF orientation into the pixels (so width/height and all downstream
@@ -52,6 +59,8 @@ export interface ProcessOptions {
   flipH?: boolean
   /** Convert to black & white (greyscale). */
   grayscale?: boolean
+  /** Mono tone (neutral B&W, or a luminance-preserving tint) when grayscale. */
+  tone?: MonoTone
   /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
   maxSizeKb?: number
 }
@@ -122,8 +131,11 @@ export async function processImage(opts: ProcessOptions): Promise<ProcessOutput>
   // Dropping alpha for a no-alpha format → flatten transparent pixels to white.
   if (!keepAlpha && srcHasAlpha) pipeline = pipeline.flatten({ background: WHITE_BG })
 
-  // Black & white conversion (the inverse of colourise).
-  if (opts.grayscale) pipeline = pipeline.greyscale()
+  // Black & white (inverse of colourise): neutral greyscale, or a
+  // luminance-preserving tint for toned mono (sepia / selenium / cyanotype).
+  if (opts.grayscale) {
+    pipeline = opts.tone && opts.tone !== 'neutral' ? pipeline.tint(TONE_TINT[opts.tone]) : pipeline.greyscale()
+  }
 
   const q = Math.max(1, Math.min(100, Math.round(opts.quality)))
 

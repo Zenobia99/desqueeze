@@ -130,6 +130,7 @@ export const DEFAULT_SETTINGS: ItemSettings = {
   upscale: true,
   colourise: false,
   grayscale: false,
+  tone: 'neutral',
   upModel: 'Standard',
   upSpeed: 'Balanced',
   maxFactor: 4,

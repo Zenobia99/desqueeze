@@ -217,6 +217,7 @@ export default function App() {
       needsUpscale: canUpscale,
       colourise: e.colourise,
       grayscale: e.grayscale,
+      tone: e.tone,
       upModel: e.upModel,
       upSpeed: e.upSpeed,
       maxFactor: e.maxFactor,
@@ -499,6 +500,7 @@ export default function App() {
           needsUpscale: r.upscale && e.upscale,
           colourise: e.colourise,
           grayscale: e.grayscale,
+          tone: e.tone,
           upModel: e.upModel,
           upSpeed: e.upSpeed,
           maxFactor: e.maxFactor,
@@ -662,6 +664,8 @@ export default function App() {
           onInstallColourise={installColourise}
           grayscale={s.grayscale}
           setGrayscale={s.setGrayscale}
+          tone={s.tone}
+          setTone={s.setTone}
         />
       </div>
 

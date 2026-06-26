@@ -199,6 +199,7 @@ export async function runExport(
         rotation: item.rotation,
         flipH: item.flipH,
         grayscale: item.grayscale,
+        tone: item.tone,
         maxSizeKb: item.maxSizeKb
       })
 
@@ -339,6 +340,7 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
         rotation: req.rotation,
         flipH: req.flipH,
         grayscale: req.grayscale,
+        tone: req.tone,
         maxSizeKb: req.maxSizeKb
       })
       // For display: when cropPreview is set, return a high-resolution image
@@ -377,7 +379,8 @@ export async function runPreview(req: PreviewRequest): Promise<PreviewResult> {
       fit: req.fit,
       rotation: req.rotation,
       flipH: req.flipH,
-      grayscale: req.grayscale
+      grayscale: req.grayscale,
+      tone: req.tone
     })
     return {
       ok: true,

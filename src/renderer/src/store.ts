@@ -68,6 +68,7 @@ export function useDesqueeze(photos: Photo[]) {
     (grayscale: boolean) => applyPatch(grayscale ? { grayscale: true, colourise: false } : { grayscale: false }),
     [applyPatch]
   )
+  const setTone = useCallback((tone: ItemSettings['tone']) => applyPatch({ tone }), [applyPatch])
   const setUpModel = useCallback(
     (upModel: ItemSettings['upModel']) => applyPatch({ upModel }),
     [applyPatch]
@@ -235,6 +236,7 @@ export function useDesqueeze(photos: Photo[]) {
     upscale: repr.upscale,
     colourise: repr.colourise,
     grayscale: repr.grayscale,
+    tone: repr.tone,
     upModel: repr.upModel,
     upSpeed: repr.upSpeed,
     maxFactor: repr.maxFactor,
@@ -258,6 +260,7 @@ export function useDesqueeze(photos: Photo[]) {
     setUpscale,
     setColourise,
     setGrayscale,
+    setTone,
     setUpModel,
     setUpSpeed,
     setMaxFactor,

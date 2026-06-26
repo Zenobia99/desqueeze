@@ -1,5 +1,5 @@
 import React from 'react'
-import type { OutputFormat, ResizeMode, ViewMode } from '@shared/types'
+import type { MonoTone, OutputFormat, ResizeMode, ViewMode } from '@shared/types'
 import ColourisePanel from './ColourisePanel'
 import {
   CropIcon,
@@ -24,6 +24,13 @@ const groupLabel: React.CSSProperties = {
 }
 
 const FORMATS: OutputFormat[] = ['Auto', 'PNG', 'JPEG', 'TIFF', 'HEIC', 'WebP']
+// Mono tones + a swatch hinting the tint (matches sharp's TONE_TINT).
+const TONES: { key: MonoTone; label: string; swatch: string }[] = [
+  { key: 'neutral', label: 'Neutral', swatch: '#9a9a9a' },
+  { key: 'sepia', label: 'Sepia', swatch: '#a5784a' },
+  { key: 'selenium', label: 'Selenium', swatch: '#7c6f96' },
+  { key: 'cyanotype', label: 'Cyanotype', swatch: '#325fa0' }
+]
 const FITS: { name: ResizeMode; Icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
   { name: 'Fill', Icon: FillIcon },
   { name: 'Fit', Icon: FitIcon },
@@ -160,6 +167,9 @@ export interface InspectorProps {
   /** Convert to true (gamma-correct) black & white. */
   grayscale: boolean
   setGrayscale: (b: boolean) => void
+  /** Mono tone (shown when B&W is on). */
+  tone: MonoTone
+  setTone: (t: MonoTone) => void
 }
 
 function Inspector(p: InspectorProps) {
@@ -442,6 +452,46 @@ function Inspector(p: InspectorProps) {
             <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
           </button>
         </label>
+        {p.grayscale && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {TONES.map((t) => {
+              const a = p.tone === t.key
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => p.setTone(t.key)}
+                  title={t.label}
+                  style={{
+                    flex: 1,
+                    height: 30,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    borderRadius: 7,
+                    cursor: 'pointer',
+                    font: '500 11.5px -apple-system',
+                    border: `0.5px solid ${a ? '#1473e6' : '#d8d8dc'}`,
+                    background: a ? 'rgba(20,115,230,.08)' : '#ffffff',
+                    color: a ? '#1473e6' : '#5a5a5f'
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 11,
+                      height: 11,
+                      borderRadius: '50%',
+                      flex: 'none',
+                      background: t.swatch,
+                      boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,.15)'
+                    }}
+                  />
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
         </fieldset>
       </div>
