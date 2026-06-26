@@ -120,7 +120,9 @@ function PreviewPane({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 18,
+        // Extra bottom room reserves a margin for the centered caption, so the
+        // whole image stays visible above the overlay (not in crop mode).
+        padding: cropEditing ? 0 : '16px 18px 42px',
         overflow: 'hidden'
       }}
     >
