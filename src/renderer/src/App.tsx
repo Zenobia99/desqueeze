@@ -587,7 +587,7 @@ export default function App() {
           onEnableAi={() => s.setUpscale(true)}
         />
 
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {leadRow && (
             <PreviewPane
               name={leadRow.photo.name}
