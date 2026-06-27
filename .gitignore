@@ -9,5 +9,7 @@ dist/
 # Local / temporary files
 .codegraph/
 *.png
+# ...except the packaged app icon, which must be tracked for builds.
+!build/icon.png
 *.mlpackage/
 test_coreml.py
