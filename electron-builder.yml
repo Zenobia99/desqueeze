@@ -16,6 +16,10 @@ mac:
   target:
     - dmg
   category: public.app-category.photography
+  # App icon. Drop a 1024×1024 PNG at build/icon.png (electron-builder converts
+  # it to .icns), or supply build/icon.icns directly. If the file is missing the
+  # build falls back to the default Electron icon.
+  icon: build/icon.png
   # Build unsigned for a local size check (no Developer ID needed). Remove this
   # to sign/notarise for distribution.
   identity: null
