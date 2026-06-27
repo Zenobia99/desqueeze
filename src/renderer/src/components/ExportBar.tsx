@@ -4,14 +4,12 @@ import { DownloadTray } from './Icons'
 function ExportBar({
   headline,
   totalSize,
-  savings,
   exportDisabled,
   exporting,
   onExport
 }: {
   headline: string
   totalSize: string
-  savings: string
   exportDisabled: boolean
   exporting: boolean
   onExport: () => void
@@ -32,9 +30,7 @@ function ExportBar({
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <span style={{ font: '600 12.5px -apple-system', color: '#1d1d1f' }}>{headline}</span>
-        <span style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>
-          Est. {totalSize} · saves ~{savings}
-        </span>
+        <span style={{ font: '400 11px -apple-system', color: '#8a8a8e' }}>Est. output {totalSize}</span>
       </div>
       {/* One action: pick the destination folder, then export to it. */}
       <button

@@ -687,7 +687,6 @@ export default function App() {
             : `${s.photos.length} ${s.photos.length === 1 ? 'photo' : 'photos'} queued`
         }
         totalSize={exportTotals.totalSize}
-        savings={exportTotals.savings}
         exportDisabled={s.selCount === 0}
         exporting={exporting}
         onExport={handleExport}
