@@ -91,6 +91,11 @@ function ColourisePanel(p: ColourisePanelProps) {
             privately on-device, no server.
           </div>
         )}
+        {p.available && p.colourise && (
+          <div style={{ padding: '0 12px 11px', font: '400 11px -apple-system', color: '#9a9aa0', lineHeight: 1.45 }}>
+            Applies to black &amp; white photos only — colour photos are left unchanged.
+          </div>
+        )}
       </div>
     </div>
   )

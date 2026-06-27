@@ -47,6 +47,49 @@ function findModel(): string | null {
   return models.length ? join(dir, models[0]) : null
 }
 
+/**
+ * Detect whether an image is effectively black & white — neutral OR uniformly
+ * toned (sepia/selenium), which DeOldify should still colourise. The signal is
+ * chroma *variance*, not magnitude: a mono/toned photo has one hue (low chroma
+ * spread), a real colour photo has many (high spread). Running the model on a
+ * colour image produces a blue cast, so callers skip when this is false.
+ */
+async function isGrayscale(input: Buffer): Promise<boolean> {
+  try {
+    const { data, info } = await sharp(input, { failOn: 'none' })
+      .removeAlpha()
+      .toColourspace('srgb')
+      .resize(80, 80, { fit: 'inside' })
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    const ch = info.channels
+    if (ch < 3) return true
+    let sCb = 0
+    let sCr = 0
+    let sCb2 = 0
+    let sCr2 = 0
+    let n = 0
+    for (let i = 0; i + 2 < data.length; i += ch) {
+      const r = data[i]
+      const g = data[i + 1]
+      const b = data[i + 2]
+      const cb = -0.168736 * r - 0.331264 * g + 0.5 * b
+      const cr = 0.5 * r - 0.418688 * g - 0.081312 * b
+      sCb += cb
+      sCr += cr
+      sCb2 += cb * cb
+      sCr2 += cr * cr
+      n++
+    }
+    if (n === 0) return true
+    const stdCb = Math.sqrt(Math.max(0, sCb2 / n - (sCb / n) ** 2))
+    const stdCr = Math.sqrt(Math.max(0, sCr2 / n - (sCr / n) ** 2))
+    return stdCb + stdCr <= 30 // low chroma spread → neutral or single-tone B&W
+  } catch {
+    return true // can't tell → don't block
+  }
+}
+
 /** Cap the image fed to the model (its colour is low-frequency, and Vision
  * rescales to the model's baked input anyway) to keep the temp PNG small. */
 async function capForModel(input: Buffer, cap = 1280): Promise<Buffer> {
@@ -206,6 +249,8 @@ class CoreMLColouriseEngine implements ColouriseEngine {
   async colourise(input: Buffer): Promise<Buffer> {
     const model = findModel()
     if (!model) throw new Error('colourise model not installed')
+    // Colourising an already-colour photo just adds a blue cast — skip it.
+    if (!(await isGrayscale(input))) return input
     const bin = await this.ensureHelper()
     const dir = await fs.mkdtemp(join(tmpdir(), 'dq-colourise-'))
     const id = randomBytes(4).toString('hex')
