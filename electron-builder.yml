@@ -1,0 +1,24 @@
+appId: com.desqueeze.app
+productName: Desqueeze
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+# sharp ships native binaries (libvips) that can't run from inside the asar —
+# unpack sharp and its platform @img packages so they load at runtime.
+asarUnpack:
+  - '**/node_modules/sharp/**'
+  - '**/node_modules/@img/**'
+mac:
+  target:
+    - dmg
+  category: public.app-category.photography
+  # Build unsigned for a local size check (no Developer ID needed). Remove this
+  # to sign/notarise for distribution.
+  identity: null
+  artifactName: ${productName}-${version}-${arch}.dmg
+dmg:
+  title: ${productName}
