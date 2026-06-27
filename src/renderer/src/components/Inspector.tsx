@@ -81,26 +81,39 @@ function SizeField({ value, onCommit }: { value: number; onCommit: (n: number) =
   )
 }
 
-// Segmented list/grid toggle for the queue view (sits in the panel header).
-function ViewBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+// Segmented list/gallery toggle for the queue view (sits in the panel header):
+// icon + word label, active state in blue.
+function ViewBtn({
+  active,
+  onClick,
+  label,
+  children
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <button
       onClick={onClick}
       style={{
-        width: 30,
-        height: 24,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        gap: 6,
+        height: 28,
+        padding: '0 12px',
         border: 'none',
         borderRadius: 6,
         cursor: 'pointer',
-        color: active ? '#1d1d1f' : '#9a9aa0',
+        font: '600 12px -apple-system',
+        color: active ? '#1473e6' : '#6a6a70',
         background: active ? '#ffffff' : 'transparent',
-        boxShadow: active ? '0 1px 2px rgba(0,0,0,.12)' : 'none'
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,.14)' : 'none'
       }}
     >
       {children}
+      {label}
     </button>
   )
 }
@@ -191,12 +204,12 @@ function Inspector(p: InspectorProps) {
           works, even with no selection. */}
       <div style={{ padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ font: '600 15px -apple-system', color: '#1d1d1f' }}>Format &amp; Adjust</span>
-        <div style={{ display: 'flex', alignItems: 'center', background: '#e7e7ea', borderRadius: 7, padding: 2, gap: 2 }}>
-          <ViewBtn active={p.viewMode === 'list'} onClick={() => p.setViewMode('list')}>
-            <ListIcon />
+        <div style={{ display: 'flex', alignItems: 'center', background: '#e7e7ea', borderRadius: 8, padding: 2, gap: 2 }}>
+          <ViewBtn active={p.viewMode === 'list'} onClick={() => p.setViewMode('list')} label="List">
+            <ListIcon size={16} />
           </ViewBtn>
-          <ViewBtn active={p.viewMode === 'grid'} onClick={() => p.setViewMode('grid')}>
-            <GridIcon />
+          <ViewBtn active={p.viewMode === 'grid'} onClick={() => p.setViewMode('grid')} label="Gallery">
+            <GridIcon size={16} />
           </ViewBtn>
         </div>
       </div>
