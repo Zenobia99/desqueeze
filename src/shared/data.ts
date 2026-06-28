@@ -1,4 +1,12 @@
-import type { ItemSettings, Preset, PresetGroup } from './types'
+import type { ItemSettings, Preset, PresetGroup, UpscaleSpeed } from './types'
+
+// Longest side fed to the AI upscaler per speed setting. Model time scales
+// ~quadratically with this, so it's the main quality/speed lever.
+export const SPEED_CAP: Record<UpscaleSpeed, number> = {
+  Fastest: 768,
+  Balanced: 1024,
+  Max: 1536
+}
 
 const slug = (s: string): string =>
   s
@@ -110,16 +118,23 @@ const DEFAULT_PRESET = PRESET_GROUPS[1].items[2] // Full HD 1920×1080
 
 export const DEFAULT_SETTINGS: ItemSettings = {
   format: 'JPEG',
-  fit: 'Fit',
+  fit: 'Fill',
   targetW: DEFAULT_PRESET.w,
   targetH: DEFAULT_PRESET.h,
   aspectLocked: false,
   quality: 85,
   rotation: 0,
   flipH: false,
-  upscale: false,
-  upModel: 'Photo',
+  // AI upscaling is on by default; it only actually runs when the chosen output
+  // is larger than the source, so this is a "use AI for enlargements" opt-out.
+  upscale: true,
+  colourise: false,
+  grayscale: false,
+  tone: 'neutral',
+  upModel: 'Standard',
+  upSpeed: 'Balanced',
   maxFactor: 4,
+  maxSizeKb: 0,
   presetId: DEFAULT_PRESET.id,
   presetName: DEFAULT_PRESET.name,
   presetDim: DEFAULT_PRESET.dim

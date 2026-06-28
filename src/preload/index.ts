@@ -1,5 +1,7 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
+  Capabilities,
+  ExportProgress,
   ExportRequest,
   ExportResult,
   ImportedPhoto,
@@ -15,11 +17,32 @@ const api = {
   loadSource: (source: LibrarySource): Promise<SourceLoadResult> =>
     ipcRenderer.invoke('photos:source', source),
   preview: (req: PreviewRequest): Promise<PreviewResult> => ipcRenderer.invoke('photos:preview', req),
+  /** Query which optional on-device engines are available (e.g. colourise). */
+  capabilities: (): Promise<Capabilities> => ipcRenderer.invoke('caps:get'),
+  /** Default export folder for a fresh install (no folder picked yet). */
+  defaultDestination: (): Promise<string> => ipcRenderer.invoke('paths:defaultDestination'),
+  /** Pick & install a Core ML colourise model; resolves with new availability. */
+  installColouriseModel: (): Promise<{ ok: boolean; available: boolean; error?: string }> =>
+    ipcRenderer.invoke('colourise:install'),
   addPhotos: (): Promise<ImportedPhoto[]> => ipcRenderer.invoke('photos:add'),
-  chooseDestination: (): Promise<string | null> =>
-    ipcRenderer.invoke('dialog:chooseDestination'),
+  /** Import dropped files/folders by absolute path. */
+  importPaths: (paths: string[]): Promise<ImportedPhoto[]> =>
+    ipcRenderer.invoke('photos:import', paths),
+  /** Re-read EXIF-oriented dimensions for queued, file-backed photos. */
+  measurePhotos: (items: { id: number; sourcePath: string }[]): Promise<{ id: number; w: number; h: number }[]> =>
+    ipcRenderer.invoke('photos:measure', items),
+  /** Resolve a dropped File's absolute path (Electron webUtils). */
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
+  chooseDestination: (defaultPath?: string): Promise<string | null> =>
+    ipcRenderer.invoke('dialog:chooseDestination', defaultPath),
   exportPhotos: (req: ExportRequest): Promise<ExportResult> =>
     ipcRenderer.invoke('export:run', req),
+  /** Subscribe to per-item export progress; returns an unsubscribe fn. */
+  onExportProgress: (cb: (p: ExportProgress) => void): (() => void) => {
+    const listener = (_e: unknown, p: ExportProgress): void => cb(p)
+    ipcRenderer.on('export:progress', listener)
+    return () => ipcRenderer.removeListener('export:progress', listener)
+  },
   reveal: (path: string): Promise<void> => ipcRenderer.invoke('shell:reveal', path)
 }
 

@@ -4,6 +4,11 @@ export type OutputFormat = 'Auto' | 'PNG' | 'JPEG' | 'TIFF' | 'HEIC' | 'WebP'
 export type ResizeMode = 'Fill' | 'Fit' | 'Stretch'
 export type ViewMode = 'list' | 'grid'
 export type UpscaleModel = 'Standard' | 'Photo' | 'Art'
+/** Mono toning options (luminance-preserving tints over a B&W base). */
+export type MonoTone = 'neutral' | 'sepia' | 'selenium' | 'cyanotype'
+
+/** AI upscale quality/speed trade-off (caps the pixels fed to the model). */
+export type UpscaleSpeed = 'Fastest' | 'Balanced' | 'Max'
 
 /** A per-file override that wins over the global batch settings. */
 export interface PhotoOverride {
@@ -29,6 +34,8 @@ export interface Photo {
   path?: string
   /** PhotoKit local identifier for assets that live in the macOS Photos library. */
   photosId?: string
+  /** Capture/added date as epoch ms, for date sorting (undefined when unknown). */
+  date?: number
   override?: PhotoOverride
 }
 
@@ -44,10 +51,23 @@ export interface SourceLoadResult {
 }
 
 /** Which Library source is active in the sidebar. */
-export type LibrarySource = 'recents' | 'favourites' | 'last-import' | 'albums'
+export type LibrarySource = 'favourites' | 'last-import' | 'albums'
+
+/**
+ * A crop region in normalized [0,1] coordinates relative to the (un-rotated)
+ * source image. Undefined / full-frame means no crop. Applied before resize.
+ */
+export interface CropRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
 
 /** The full configurable output settings for a photo (or the batch default). */
 export interface ItemSettings {
+  /** Optional source crop, applied before resize/upscale. */
+  crop?: CropRect
   format: OutputFormat
   fit: ResizeMode
   /** Target box dimensions. */
@@ -59,9 +79,19 @@ export interface ItemSettings {
   rotation: number
   flipH: boolean
   upscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise: boolean
+  /** Convert to black & white (greyscale). Mutually exclusive with colourise. */
+  grayscale: boolean
+  /** Mono tone when grayscale is on (neutral B&W or a luminance-preserving tint). */
+  tone: MonoTone
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed: UpscaleSpeed
   /** AI upscale factor (Upscayl -s): 2 | 3 | 4. */
   maxFactor: number
+  /** Cap output to this many KB by auto-tuning quality (0 = off, lossy only). */
+  maxSizeKb: number
   presetId: string
   presetName: string
   presetDim: string
@@ -103,16 +133,43 @@ export interface ExportItemRequest {
   rotation?: number
   /** Mirror horizontally. */
   flipH?: boolean
+  /** Optional source crop (normalized), applied before resize/upscale. */
+  crop?: CropRect
   /** Whether the target exceeds the source and needs the Upscaly engine. */
   needsUpscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise?: boolean
+  /** Convert to black & white (greyscale). */
+  grayscale?: boolean
+  /** Mono tone when grayscale is on. */
+  tone?: MonoTone
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
+  /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
+  maxSizeKb?: number
 }
 
 export interface ExportRequest {
   items: ExportItemRequest[]
   destination: string
+}
+
+/** Stage of work for the item currently being processed. */
+export type ExportPhase = 'colourising' | 'upscaling' | 'resizing' | 'saving' | 'done'
+
+/** Per-item progress emitted during an export run. */
+export interface ExportProgress {
+  /** Count of items fully finished (so `index/total` is the completed fraction). */
+  index: number
+  total: number
+  id: number
+  name: string
+  ok: boolean
+  /** What's happening to `name` right now (for live status text). */
+  phase?: ExportPhase
 }
 
 export interface ExportItemResult {
@@ -143,12 +200,35 @@ export interface PreviewRequest {
   fit: ResizeMode
   rotation?: number
   flipH?: boolean
+  /** Optional source crop (normalized), applied before resize/upscale. */
+  crop?: CropRect
   needsUpscale: boolean
+  /** Colourise (B&W → colour) via the on-device Core ML engine. */
+  colourise?: boolean
+  /** Convert to black & white (greyscale). */
+  grayscale?: boolean
+  /** Mono tone when grayscale is on. */
+  tone?: MonoTone
   upModel: UpscaleModel
+  /** AI upscale quality/speed trade-off. */
+  upSpeed?: UpscaleSpeed
   /** AI upscale factor (Upscayl -s). */
   maxFactor?: number
+  /** Cap output to this many KB by auto-tuning quality (0/undefined = off). */
+  maxSizeKb?: number
   /** Render at the real export box + format to report exact output bytes. */
   fullEstimate?: boolean
+  /**
+   * Return the raw source image (capped, no crop/resize/rotation) plus its
+   * native dimensions, for the interactive crop editor to draw a region on.
+   */
+  sourceView?: boolean
+  /**
+   * Return a native-resolution center crop of the output (instead of the whole
+   * image downscaled to fit), so fine detail — e.g. AI upscaling — is visible
+   * at 100%. Implies a full-resolution render.
+   */
+  cropPreview?: boolean
 }
 
 export interface PreviewResult {
@@ -160,4 +240,10 @@ export interface PreviewResult {
   height?: number
   bytes?: number
   error?: string
+}
+
+/** Optional on-device engines the renderer can query to gate their UI. */
+export interface Capabilities {
+  /** The Core ML colourise model is installed and the platform supports it. */
+  colourise: boolean
 }

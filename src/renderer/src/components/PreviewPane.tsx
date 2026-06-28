@@ -1,6 +1,11 @@
 import React from 'react'
+import type { CropRect } from '@shared/types'
+import CropStage from './CropStage'
 
-export default function PreviewPane({
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n))
+const CENTER = { x: 0.5, y: 0.5 }
+
+function PreviewPane({
   name,
   dataUrl,
   loading,
@@ -9,7 +14,20 @@ export default function PreviewPane({
   canUpscale,
   showingUpscaled,
   upscaleLoading,
-  onPreviewUpscale
+  onPreviewUpscale,
+  comparing,
+  hasComparison,
+  onToggleCompare,
+  zoom,
+  onToggleZoom,
+  cropEditing,
+  cropSrc,
+  cropNatW,
+  cropNatH,
+  currentCrop,
+  onCropCommit,
+  onCropReset,
+  onCropDone
 }: {
   name: string
   dataUrl: string | null
@@ -22,12 +40,76 @@ export default function PreviewPane({
   showingUpscaled: boolean
   upscaleLoading: boolean
   onPreviewUpscale: () => void
+  /** Viewing the plain (no-AI) crop rather than the AI crop. */
+  comparing: boolean
+  /** A plain-resize comparison crop is available to toggle to. */
+  hasComparison: boolean
+  onToggleCompare: () => void
+  /** 1:1 zoom (pannable detail) vs whole-image fit. */
+  zoom: boolean
+  onToggleZoom: () => void
+  /** Crop editor is open. */
+  cropEditing: boolean
+  /** Raw source image (for the crop editor) + its native dimensions. */
+  cropSrc: string | null
+  cropNatW: number
+  cropNatH: number
+  /** Current crop region (normalized) for the lead photo, if any. */
+  currentCrop?: CropRect
+  onCropCommit: (r: CropRect) => void
+  onCropReset: () => void
+  onCropDone: () => void
 }) {
+  const imgRef = React.useRef<HTMLImageElement>(null)
+  // Pan lives here, not in the parent: during a drag we mutate the image's
+  // object-position directly (no React render per mouse-move), committing to
+  // state only on release. This keeps panning off the app's render path.
+  const [pan, setPan] = React.useState(CENTER)
+  const panRef = React.useRef(CENTER)
+  const drag = React.useRef<{ sx: number; sy: number; px: number; py: number } | null>(null)
+  // The pannable 1:1 view is active only when upscaled AND zoomed in.
+  const panning = showingUpscaled && zoom
+
+  // Recenter whenever a fresh upscale render appears or is cleared.
+  React.useEffect(() => {
+    panRef.current = CENTER
+    setPan(CENTER)
+  }, [showingUpscaled])
+
+  const onPointerDown = (e: React.PointerEvent<HTMLImageElement>): void => {
+    if (!panning) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    drag.current = { sx: e.clientX, sy: e.clientY, px: panRef.current.x, py: panRef.current.y }
+  }
+  const onPointerMove = (e: React.PointerEvent<HTMLImageElement>): void => {
+    const d = drag.current
+    const img = imgRef.current
+    if (!d || !img) return
+    const overflowX = img.naturalWidth - img.clientWidth
+    const overflowY = img.naturalHeight - img.clientHeight
+    const nx = overflowX > 0 ? clamp01(d.px - (e.clientX - d.sx) / overflowX) : 0.5
+    const ny = overflowY > 0 ? clamp01(d.py - (e.clientY - d.sy) / overflowY) : 0.5
+    panRef.current = { x: nx, y: ny }
+    // Update the DOM directly — no setState — so dragging never re-renders.
+    img.style.objectPosition = `${nx * 100}% ${ny * 100}%`
+  }
+  const endDrag = (e: React.PointerEvent<HTMLImageElement>): void => {
+    if (drag.current) {
+      drag.current = null
+      e.currentTarget.releasePointerCapture?.(e.pointerId)
+      setPan(panRef.current) // commit once, so later renders keep the position
+    }
+  }
+
   return (
     <div
       style={{
-        flex: 'none',
-        height: 320,
+        // While cropping, fill the whole column (the queue is hidden) so the
+        // editor gets maximum room; otherwise it's a fixed preview strip.
+        flex: cropEditing ? 1 : 'none',
+        height: cropEditing ? 'auto' : 256,
+        minHeight: 0,
         borderBottom: '0.5px solid #ededf0',
         background: '#f2f2f4',
         backgroundImage:
@@ -38,17 +120,101 @@ export default function PreviewPane({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 18
+        // Extra bottom room reserves a margin for the centered caption, so the
+        // whole image stays visible above the overlay (not in crop mode).
+        padding: cropEditing ? 0 : '16px 18px 42px',
+        overflow: 'hidden'
       }}
     >
+      {cropEditing ? (
+        <>
+          {cropSrc ? (
+            <CropStage
+              src={cropSrc}
+              natW={cropNatW}
+              natH={cropNatH}
+              crop={currentCrop}
+              onCommit={onCropCommit}
+            />
+          ) : (
+            <span style={{ font: '400 13px -apple-system', color: '#9a9aa0' }}>Loading source…</span>
+          )}
+          {/* Crop toolbar */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              background: 'linear-gradient(transparent,rgba(0,0,0,.45))'
+            }}
+          >
+            <span style={{ font: '600 11.5px -apple-system', color: '#fff' }}>
+              Drag the handles to crop
+            </span>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={onCropReset}
+              style={{
+                height: 26,
+                padding: '0 11px',
+                border: 'none',
+                borderRadius: 7,
+                background: 'rgba(255,255,255,.22)',
+                color: '#fff',
+                font: '600 11.5px -apple-system',
+                cursor: 'pointer'
+              }}
+            >
+              Reset
+            </button>
+            <button
+              onClick={onCropDone}
+              style={{
+                height: 26,
+                padding: '0 13px',
+                border: 'none',
+                borderRadius: 7,
+                background: '#1366d6',
+                color: '#fff',
+                font: '600 11.5px -apple-system',
+                cursor: 'pointer'
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </>
+      ) : (
+      <>
       {dataUrl ? (
         <img
+          ref={imgRef}
           src={dataUrl}
           alt={name}
+          draggable={false}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
           style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
+            // Default: whole image, true proportions (matches the export). Only in
+            // explicit 1:1 zoom is it shown at native pixels (a pannable window into
+            // the detail) so the AI upscaling is visible without implying a crop.
+            ...(panning
+              ? {
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'none' as const,
+                  objectPosition: `${pan.x * 100}% ${pan.y * 100}%`,
+                  cursor: 'grab',
+                  touchAction: 'none'
+                }
+              : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' as const }),
             borderRadius: 4,
             boxShadow: '0 2px 10px rgba(0,0,0,.18), 0 0 0 0.5px rgba(0,0,0,.12)',
             opacity: loading ? 0.55 : 1,
@@ -61,14 +227,19 @@ export default function PreviewPane({
         </span>
       )}
 
-      {/* Caption */}
+      {/* Caption — centered along the bottom edge so it sits in the margin and
+          stays clear of the image subject. */}
       <div
         style={{
           position: 'absolute',
-          left: 14,
-          bottom: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          bottom: 8,
+          maxWidth: 'calc(100% - 24px)',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
           gap: 8,
           padding: '5px 10px',
           borderRadius: 7,
@@ -84,17 +255,93 @@ export default function PreviewPane({
           {estLabel}
         </span>
         {showingUpscaled && (
-          <span
-            style={{
-              font: '600 9.5px -apple-system',
-              padding: '2px 5px',
-              borderRadius: 4,
-              background: 'linear-gradient(135deg,#7b5cff,#b44cff)',
-              color: '#fff'
-            }}
-          >
-            ✓ Upscaly
-          </span>
+          <>
+            {/* Fit (whole image, true proportions) ↔ 100% (pannable detail). */}
+            <button
+              onClick={onToggleZoom}
+              title={zoom ? 'Show the whole image' : 'Zoom to 100% to inspect detail'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: 2,
+                borderRadius: 5,
+                border: 'none',
+                cursor: 'pointer',
+                background: 'rgba(255,255,255,.16)'
+              }}
+            >
+              {[
+                { label: 'Fit', active: !zoom },
+                { label: '100%', active: zoom }
+              ].map((seg) => (
+                <span
+                  key={seg.label}
+                  style={{
+                    font: '600 9.5px -apple-system',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: seg.active ? 'rgba(255,255,255,.9)' : 'transparent',
+                    color: seg.active ? '#1d1d1f' : 'rgba(255,255,255,.75)'
+                  }}
+                >
+                  {seg.label}
+                </span>
+              ))}
+            </button>
+            {zoom && (
+              <span style={{ font: '400 10px -apple-system', color: 'rgba(255,255,255,.6)' }}>
+                drag to pan
+              </span>
+            )}
+            {hasComparison ? (
+              // AI ↔ Original toggle — tap to compare the same crop with/without AI.
+              <button
+                onClick={onToggleCompare}
+                title="Compare with the plain (no-AI) resize"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: 2,
+                  borderRadius: 5,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: 'rgba(255,255,255,.16)'
+                }}
+              >
+                {[
+                  { label: '✓ Upscaly', active: !comparing },
+                  { label: 'Original', active: comparing }
+                ].map((seg) => (
+                  <span
+                    key={seg.label}
+                    style={{
+                      font: '600 9.5px -apple-system',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      background: seg.active ? 'linear-gradient(135deg,#7b5cff,#b44cff)' : 'transparent',
+                      color: seg.active ? '#fff' : 'rgba(255,255,255,.75)'
+                    }}
+                  >
+                    {seg.label}
+                  </span>
+                ))}
+              </button>
+            ) : (
+              <span
+                style={{
+                  font: '600 9.5px -apple-system',
+                  padding: '2px 5px',
+                  borderRadius: 4,
+                  background: 'linear-gradient(135deg,#7b5cff,#b44cff)',
+                  color: '#fff'
+                }}
+              >
+                ✓ Upscaly
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -106,7 +353,7 @@ export default function PreviewPane({
           style={{
             position: 'absolute',
             right: 14,
-            bottom: 12,
+            top: 12,
             display: 'flex',
             alignItems: 'center',
             gap: 7,
@@ -128,6 +375,10 @@ export default function PreviewPane({
           {upscaleLoading ? 'Upscaling…' : 'Preview Upscaly'}
         </button>
       )}
+      </>
+      )}
     </div>
   )
 }
+
+export default React.memo(PreviewPane)

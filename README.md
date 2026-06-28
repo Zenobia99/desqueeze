@@ -29,30 +29,39 @@ npm run typecheck  # tsc for both the node (main/preload) and web (renderer) pro
 
 ```
 src/
-  shared/        types, sample data, and the compute logic (factors, est-size, totals)
-                 — ported verbatim from the prototype so numbers match the design.
+  shared/        types, presets, and the compute logic (format factors,
+                 quality-aware est-size, batch totals).
   main/          Electron main process
-    sharp-service.ts        real resize / format / quality engine (sharp)
-    sources/photo-source.ts PhotoSource interface + StubPhotoSource (Photos library stub)
-    upscaly/engine.ts       UpscalyEngine interface + StubUpscalyEngine (AI upscaler stub)
-    ipc.ts                  IPC handlers + runExport() pipeline
-    index.ts                window creation
+    sharp-service.ts          real resize / format / quality engine (sharp);
+                              Fill=cover, Fit=letterbox-to-box, Stretch=fill
+    sources/photos-library.ts macOS Photos source via an on-demand Swift
+                              (PhotoKit) helper
+    upscaly/engine.ts         UpscalyEngine — RealUpscalyEngine (Upscayl CLI)
+                              with a Lanczos fallback; minimal-factor scaling
+    ipc.ts                    IPC handlers + runExport()/runPreview() pipelines
+    index.ts                  window creation + [sharp]/[upscaly] diagnostics
   preload/       contextBridge — exposes a typed `window.desqueeze` API, no Node leak
   renderer/      React UI (one component per design region)
 ```
 
-### What's real vs. stubbed
+### What's real
 
-- **Real:** all UI + interaction states, selection, view toggle, format/dimension/resize/quality
-  controls, the computed scale % / est. size / per-batch totals, and the **sharp** image
-  pipeline (resize, format conversion, quality) wired over IPC. The Export button runs it for
-  real and writes files named `{name}@{w}w.{ext}`.
-- **Stubbed behind clean interfaces:**
-  - `PhotoSource` — `StubPhotoSource` returns the design's 12-item sample batch and synthesizes
-    real source rasters (from the gradient stand-ins) so sharp has genuine pixels to work on.
-    Swap in a PhotoKit-backed implementation later.
-  - `UpscalyEngine` — `StubUpscalyEngine` does a Lanczos enlarge (honouring the 4× max factor)
-    as a placeholder for the on-device AI model.
+- **UI + interaction:** all states, selection, view toggle, format/dimension/resize/quality
+  controls, the computed scale % / quality-aware est. size / per-batch totals.
+- **Image pipeline (sharp):** resize, format conversion, and quality, wired over IPC. The three
+  resize modes produce the exact target box and are visually distinct (Fit letterboxes with
+  black bars). Export writes files named `{name}@{w}w.{ext}`.
+- **macOS Photos library:** `PhotosLibrarySource` reads Recents/Favourites/Recently-Added via a
+  Swift PhotoKit helper compiled on demand.
+- **AI upscaling:** `RealUpscalyEngine` shells out to the Upscayl CLI (expects `Upscayl.app`
+  installed); falls back to a plain Lanczos enlarge when it's absent. It upscales by the minimal
+  factor needed and caps model input per the Speed setting (Fastest/Balanced/Max). The preview
+  offers a 1:1 AI-vs-Original compare with drag-to-pan.
+
+> **No built-in sample photos.** Populate the queue from the macOS Photos library (loaded
+> automatically) or via **Add Photos** (file import). Under an unsigned `npm run dev` launch,
+> macOS may deny Photos access (TCC) — use **Add Photos** to test. The startup `[sharp]` and
+> `[upscaly]` log lines report the active native binaries (arch/SIMD and Upscayl vs fallback).
 
 ## Not yet designed
 

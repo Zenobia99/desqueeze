@@ -1,14 +1,9 @@
-import React, { useState } from 'react'
-import type { LibrarySource, PresetGroup } from '@shared/types'
-import { PRESET_TOTAL } from '@shared/data'
+import React from 'react'
+import type { LibrarySource, PresetGroup, UpscaleModel, UpscaleSpeed } from '@shared/types'
 import photosIcon from '../assets/photos-icon.png'
-import {
-  ClockIcon,
-  PhotoMountainIcon,
-  AlbumsIcon,
-  SearchIcon,
-  CheckIcon
-} from './Icons'
+import { PhotoMountainIcon } from './Icons'
+import UpscalyPanel from './UpscalyPanel'
+import OutputSize from './OutputSize'
 
 const sectionLabel: React.CSSProperties = {
   font: '600 11px -apple-system',
@@ -66,41 +61,72 @@ function LibRow({
   )
 }
 
-export default function Sidebar({
-  presetGroups,
-  activePresetId,
-  onSelectPreset,
+function Sidebar({
   activeSource,
-  onSelectSource
+  onSelectSource,
+  output,
+  upscale,
+  setUpscale,
+  upModel,
+  setUpModel,
+  upSpeed,
+  setUpSpeed,
+  maxFactor,
+  setMaxFactor,
+  upscaleDisabled,
+  outputSummary,
+  onEnableAi
 }: {
-  presetGroups: PresetGroup[]
-  activePresetId: string
-  onSelectPreset: (groupIndex: number, itemIndex: number) => void
   activeSource: LibrarySource
   onSelectSource: (s: LibrarySource) => void
+  output: {
+    preset: { id: string; name: string; dim: string }
+    presetGroups: PresetGroup[]
+    onSelectPreset: (gi: number, ii: number) => void
+    targetW: number
+    targetH: number
+    setTargetW: (w: number) => void
+    setTargetH: (h: number) => void
+    aspectLocked: boolean
+    onToggleAspectLock: () => void
+    onSwapDims: () => void
+    sourceLabel?: string
+    sourceClass?: string
+    onMatchSource?: () => void
+  }
+  upscale: boolean
+  setUpscale: (b: boolean) => void
+  upModel: UpscaleModel
+  setUpModel: (m: UpscaleModel) => void
+  upSpeed: UpscaleSpeed
+  setUpSpeed: (s: UpscaleSpeed) => void
+  maxFactor: number
+  setMaxFactor: (n: number) => void
+  upscaleDisabled: boolean
+  outputSummary?: OutputSummary | null
+  onEnableAi?: () => void
 }) {
-  const [filter, setFilter] = useState('')
-
   return (
     <div
       className="dq-scroll"
       style={{
-        width: 236,
+        width: 252,
         flex: 'none',
+        display: 'flex',
+        flexDirection: 'column',
         background: '#f4f4f6',
         borderRight: '0.5px solid #dcdce0',
         overflowY: 'auto',
-        padding: '12px 10px 18px'
+        padding: '12px 10px 14px'
       }}
     >
       <div style={{ ...sectionLabel, padding: '6px 8px 5px' }}>Library</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <LibRow
-          selected={activeSource === 'recents'}
-          onClick={() => onSelectSource('recents')}
-          icon={<ClockIcon color={activeSource === 'recents' ? '#fff' : '#8a8a8e'} />}
-          label="Recents"
-          count="248"
+          selected={activeSource === 'last-import'}
+          onClick={() => onSelectSource('last-import')}
+          icon={<PhotoMountainIcon color={activeSource === 'last-import' ? '#fff' : '#0a84ff'} />}
+          label="Last Import"
         />
         <LibRow
           selected={activeSource === 'favourites'}
@@ -115,136 +141,123 @@ export default function Sidebar({
             />
           }
           label="Favourites"
-          count="37"
-        />
-        <LibRow
-          selected={activeSource === 'last-import'}
-          onClick={() => onSelectSource('last-import')}
-          icon={<PhotoMountainIcon color={activeSource === 'last-import' ? '#fff' : '#0a84ff'} />}
-          label="Last Import"
-          count="12"
-        />
-        <LibRow
-          selected={activeSource === 'albums'}
-          onClick={() => onSelectSource('albums')}
-          icon={<AlbumsIcon color={activeSource === 'albums' ? '#fff' : '#8a8a8e'} />}
-          label="Albums"
         />
       </div>
 
-      <div
-        style={{
-          ...sectionLabel,
-          padding: '18px 8px 5px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <span>Presets</span>
-        <span
-          style={{
-            font: '500 11px -apple-system',
-            color: '#b6b6bb',
-            textTransform: 'none',
-            letterSpacing: 0
-          }}
-        >
-          {PRESET_TOTAL}
-        </span>
-      </div>
+      <div style={{ ...sectionLabel, padding: '20px 8px 8px' }}>Output Size</div>
+      <OutputSize {...output} disabled={upscaleDisabled} />
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          height: 28,
-          margin: '0 4px 8px',
-          padding: '0 9px',
-          background: '#e9e9ec',
-          borderRadius: 6
-        }}
-      >
-        <SearchIcon size={12} />
-        <input
-          className="dq-in"
-          placeholder="Filter presets"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            font: '400 12.5px -apple-system',
-            color: '#1d1d1f',
-            width: '100%'
-          }}
-        />
-      </div>
+      <div style={{ ...sectionLabel, padding: '18px 8px 8px' }}>AI Upscale</div>
+      <UpscalyPanel
+        upscale={upscale}
+        setUpscale={setUpscale}
+        upModel={upModel}
+        setUpModel={setUpModel}
+        upSpeed={upSpeed}
+        setUpSpeed={setUpSpeed}
+        maxFactor={maxFactor}
+        setMaxFactor={setMaxFactor}
+        upscaling={outputSummary?.kind === 'ai'}
+        disabled={upscaleDisabled}
+      />
 
-      {presetGroups.map((grp, gi) => {
-        const items = grp.items
-          .map((it, ii) => ({ it, ii }))
-          .filter(({ it }) => it.name.toLowerCase().includes(filter.toLowerCase()))
-        if (items.length === 0) return null
-        return (
-          <div key={grp.name}>
-            <div
-              style={{
-                font: '600 10.5px -apple-system',
-                letterSpacing: '.03em',
-                textTransform: 'uppercase',
-                color: '#b0b0b5',
-                padding: '8px 8px 3px'
-              }}
-            >
-              {grp.name}
-            </div>
-            {items.map(({ it, ii }) => {
-              const active = activePresetId === it.id
-              return (
-                <div
-                  key={it.id}
-                  className={active ? '' : 'dq-hover'}
-                  onClick={() => onSelectPreset(gi, ii)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '6px 8px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    background: active ? '#1473e6' : 'transparent'
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span
-                      style={{
-                        font: '500 13px -apple-system',
-                        color: active ? '#fff' : '#1d1d1f',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {it.name}
-                    </span>
-                    <span
-                      style={{
-                        font: "400 11px ui-monospace,Menlo,monospace",
-                        color: active ? 'rgba(255,255,255,.8)' : '#a8a8ad'
-                      }}
-                    >
-                      {it.dim}
-                    </span>
-                  </div>
-                  {active && <CheckIcon style={{ marginLeft: 'auto' }} />}
-                </div>
-              )
-            })}
-          </div>
-        )
-      })}
+      {/* Bottom group: per-photo summary, then the Colourise engine — pinned to
+          the bottom. (Add/drag lives in the right panel's stable dead space.) */}
+      {outputSummary && (
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <OutputSummaryCard s={outputSummary} onEnableAi={onEnableAi} />
+        </div>
+      )}
     </div>
   )
 }
+
+export interface OutputSummary {
+  srcClass: string
+  outClass: string
+  factorLabel: string
+  kind: 'ai' | 'reduce' | 'same'
+  /** Whether AI Upscale is currently on for this photo. */
+  aiOn: boolean
+}
+
+// Natural-language explainer of the current settings for the selected photo.
+function OutputSummaryCard({ s, onEnableAi }: { s: OutputSummary; onEnableAi?: () => void }) {
+  const flow = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, flexWrap: 'wrap' }}>
+      <Pill>{s.srcClass}</Pill>
+      <span style={{ color: '#9a9aa0', font: '600 13px -apple-system' }}>→</span>
+      <Pill accent>{s.outClass}</Pill>
+    </div>
+  )
+  // When the output exceeds the source we always frame it as the AI-upscale
+  // path; if AI is off, the card actively offers to turn it on.
+  let tint = '#f4f4f6'
+  let bd = '#dcdce0'
+  let head = 'Exporting at source size'
+  let body = `This image will be exported at its original ${s.srcClass} size.`
+  if (s.kind === 'ai') {
+    tint = '#eef5ff'
+    bd = '#bcd6ff'
+    head = '✨ AI Upscaling'
+    body = s.aiOn
+      ? `On-device AI enlarges this ${s.srcClass} image to ${s.outClass} (about ${s.factorLabel}) — sharp detail, nothing sent to the cloud.`
+      : `This ${s.srcClass} image can be enlarged to ${s.outClass} (about ${s.factorLabel}) with sharp, on-device AI detail.`
+  } else if (s.kind === 'reduce') {
+    head = 'Resizing down'
+    body = `This ${s.srcClass} image will be reduced to ${s.outClass}. AI upscaling isn't needed.`
+  }
+  return (
+    <div
+      style={{
+        width: '100%',
+        padding: '13px 13px 14px',
+        background: tint,
+        border: `1px solid ${bd}`,
+        borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 9
+      }}
+    >
+      {flow}
+      <div style={{ font: '600 12px -apple-system', color: '#2a2a2f' }}>{head}</div>
+      <div style={{ font: '400 11.5px -apple-system', color: '#6a6a70', lineHeight: 1.5 }}>{body}</div>
+      {s.kind === 'ai' && !s.aiOn && onEnableAi && (
+        <button
+          onClick={onEnableAi}
+          style={{
+            height: 30,
+            border: 'none',
+            borderRadius: 7,
+            background: '#1366d6',
+            color: '#fff',
+            font: '600 12px -apple-system',
+            cursor: 'pointer'
+          }}
+        >
+          Enable AI Upscale
+        </button>
+      )}
+    </div>
+  )
+}
+
+function Pill({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <span
+      style={{
+        padding: '3px 9px',
+        borderRadius: 6,
+        font: '700 13px -apple-system',
+        background: accent ? '#1366d6' : '#fff',
+        color: accent ? '#fff' : '#2a2a2f',
+        border: accent ? 'none' : '1px solid #d8d8dc'
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+export default React.memo(Sidebar)

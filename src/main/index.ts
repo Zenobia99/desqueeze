@@ -1,11 +1,14 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
+import { logSharpRuntime } from './sharp-service'
+import { logUpscalyRuntime } from './upscaly/engine'
+import { logColouriseRuntime } from './colourise/engine'
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: 1320,
+    height: 900,
     minWidth: 1040,
     minHeight: 680,
     show: false,
@@ -29,6 +32,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  logSharpRuntime()
+  logUpscalyRuntime()
+  logColouriseRuntime()
   registerIpc()
   createWindow()
 

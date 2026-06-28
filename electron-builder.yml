@@ -1,0 +1,46 @@
+appId: com.desqueeze.app
+productName: Desqueeze
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+# sharp ships native binaries (libvips) that can't run from inside the asar —
+# unpack sharp and its platform @img packages so they load at runtime.
+asarUnpack:
+  - '**/node_modules/sharp/**'
+  - '**/node_modules/@img/**'
+mac:
+  target:
+    - dmg
+  category: public.app-category.photography
+  # App icon. Drop a 1024×1024 PNG at build/icon.png (electron-builder converts
+  # it to .icns), or supply build/icon.icns directly. If the file is missing the
+  # build falls back to the default Electron icon.
+  icon: build/icon.png
+  # Build unsigned for a local size check (no Developer ID needed). Remove this
+  # to sign/notarise for distribution.
+  identity: null
+  artifactName: ${productName}-${version}-${arch}.dmg
+  # Photos library access: the app reads your Photos Favourites via a PhotoKit
+  # helper. macOS only prompts for (and grants) access if the app declares why.
+  extendInfo:
+    NSPhotoLibraryUsageDescription: Desqueeze reads your Photos Favourites so you can resize, convert, and export them.
+dmg:
+  title: ${productName}
+  # Standard "drag to Applications" install window: app icon on the left, a
+  # shortcut to /Applications on the right.
+  window:
+    width: 540
+    height: 380
+  iconSize: 100
+  contents:
+    - x: 140
+      y: 200
+      type: file
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
