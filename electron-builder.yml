@@ -24,6 +24,10 @@ mac:
   # to sign/notarise for distribution.
   identity: null
   artifactName: ${productName}-${version}-${arch}.dmg
+  # Photos library access: the app reads your Photos Favourites via a PhotoKit
+  # helper. macOS only prompts for (and grants) access if the app declares why.
+  extendInfo:
+    NSPhotoLibraryUsageDescription: Desqueeze reads your Photos Favourites so you can resize, convert, and export them.
 dmg:
   title: ${productName}
   # Standard "drag to Applications" install window: app icon on the left, a
