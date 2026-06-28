@@ -26,3 +26,17 @@ mac:
   artifactName: ${productName}-${version}-${arch}.dmg
 dmg:
   title: ${productName}
+  # Standard "drag to Applications" install window: app icon on the left, a
+  # shortcut to /Applications on the right.
+  window:
+    width: 540
+    height: 380
+  iconSize: 100
+  contents:
+    - x: 140
+      y: 200
+      type: file
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
