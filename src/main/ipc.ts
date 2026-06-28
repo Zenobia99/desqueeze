@@ -1,4 +1,5 @@
-import { ipcMain, dialog, shell, app } from 'electron'
+import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron'
+import type { IpcMainInvokeEvent, OpenDialogOptions } from 'electron'
 import { promises as fs } from 'fs'
 import { join, basename, extname } from 'path'
 import { processImage, extForResolvedFormat, cropBuffer, orientBuffer, sharp } from './sharp-service'
@@ -52,6 +53,15 @@ async function expandToImageFiles(paths: string[]): Promise<string[]> {
     }
   }
   return out
+}
+
+/**
+ * The window that fired an IPC call, so native dialogs open as a sheet attached
+ * to it. A detached (window-less) open panel on macOS renders the Favorites /
+ * sidebar locations unclickable — attaching to the parent window fixes that.
+ */
+function ownerWindow(e: IpcMainInvokeEvent): BrowserWindow | null {
+  return BrowserWindow.fromWebContents(e.sender) ?? BrowserWindow.getFocusedWindow()
 }
 
 function mapFormat(f: string | undefined): OutputFormat {
@@ -450,15 +460,17 @@ export function registerIpc(): void {
     }
   )
 
-  ipcMain.handle('photos:add', async (): Promise<ImportedPhoto[]> => {
-    const res = await dialog.showOpenDialog({
+  ipcMain.handle('photos:add', async (e): Promise<ImportedPhoto[]> => {
+    const win = ownerWindow(e)
+    const opts: OpenDialogOptions = {
       title: 'Add Photos',
       buttonLabel: 'Add',
       properties: ['openFile', 'multiSelections'],
       filters: [
         { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'tiff', 'tif', 'heic', 'heif', 'gif', 'bmp'] }
       ]
-    })
+    }
+    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     if (res.canceled) return []
     const imported = await Promise.all(res.filePaths.map(importFile))
     return imported.filter((p): p is ImportedPhoto => p !== null)
@@ -498,15 +510,17 @@ export function registerIpc(): void {
   // Let the user pick a Core ML colourise model; copy it into the model folder.
   ipcMain.handle(
     'colourise:install',
-    async (): Promise<{ ok: boolean; available: boolean; error?: string }> => {
-      const res = await dialog.showOpenDialog({
+    async (e): Promise<{ ok: boolean; available: boolean; error?: string }> => {
+      const win = ownerWindow(e)
+      const opts: OpenDialogOptions = {
         title: 'Choose a Core ML colourise model',
         buttonLabel: 'Use Model',
         // openDirectory so .mlmodelc folders are selectable; showHiddenFiles so
         // models living under dot-folders (e.g. ~/.gemini/…) are visible.
         properties: ['openFile', 'openDirectory', 'showHiddenFiles'],
         filters: [{ name: 'Core ML model', extensions: ['mlmodel', 'mlpackage', 'mlmodelc'] }]
-      })
+      }
+      const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
       if (res.canceled || !res.filePaths[0]) return { ok: false, available: colourise.available() }
       try {
         const available = await installColouriseModel(res.filePaths[0])
@@ -519,13 +533,15 @@ export function registerIpc(): void {
 
   ipcMain.handle(
     'dialog:chooseDestination',
-    async (_e, defaultPath?: string): Promise<string | null> => {
-      const res = await dialog.showOpenDialog({
+    async (e, defaultPath?: string): Promise<string | null> => {
+      const win = ownerWindow(e)
+      const opts: OpenDialogOptions = {
         title: 'Export to…',
         properties: ['openDirectory', 'createDirectory'],
         buttonLabel: 'Export Here',
         ...(defaultPath ? { defaultPath } : {})
-      })
+      }
+      const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
       return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
     }
   )
